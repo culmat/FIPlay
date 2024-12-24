@@ -21,7 +21,7 @@ registerPlugins(app)
 app.mount('#app')
 
 const stations = {
-    fip_reggae: '🌿 Reggae',
+    fip_reggae: '☮️ Reggae',
     fip_pop: '🎤 Pop',
     fip_metal: '🤘 Metal',
     fip_hiphop: '🎧 Hiphop',

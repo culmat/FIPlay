@@ -13,6 +13,20 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: setupLayouts(routes),
 })
+var backend
+router.afterEach((to, from) => {
+  if (to.query.backend) {
+    backend = to.query.backend;
+  }
+  if (to.fullPath.startsWith('/station/')) {
+    console.log(`Backend query parameter: ${backend}`);
+    console.log(`Now playing: ${to.fullPath.substring('/station/'.length)}`);
+  }
+})
+
+router.beforeEach((to, from, next) => {
+  next();
+});
 
 // Workaround for https://github.com/vitejs/vite/issues/11804
 router.onError((err, to) => {

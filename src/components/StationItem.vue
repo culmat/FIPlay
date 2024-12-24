@@ -1,6 +1,6 @@
 
 <template>
-<v-card color="#952175">
+<v-card color="#333">
                 <div class="d-flex flex-no-wrap justify-space-between">
                   <div>
                     <v-card-title class="text-h5">
@@ -9,11 +9,13 @@
 
                     <v-card-subtitle>{{ songTitle }}</v-card-subtitle>
                     <v-card-subtitle>{{ artist }}</v-card-subtitle>
+                    <v-card-subtitle v-if="label">{{ albumTitle }} ({{ albumYear }}) {{ label }}</v-card-subtitle>
 
                     <v-card-actions>
                       <v-btn
+                        @click="() => $router.push(`${route}`)"
                         class="ms-2"
-                        icon="mdi-play"
+                        :icon="routeIcon"
                         variant="text"
                       ></v-btn>
                     </v-card-actions>
@@ -22,7 +24,7 @@
                   <v-avatar
                     class="ma-3"
                     rounded="0"
-                    size="125"
+                    size="200"
                   >
                     <v-img :src="image"></v-img>
                   </v-avatar>
@@ -31,6 +33,10 @@
 </template>
 <script setup>
 defineProps({
+    stationName: {
+        type: String,
+        required: true
+    },
     stationLabel: {
         type: String,
         required: true
@@ -46,6 +52,24 @@ defineProps({
     image: {
         type: String,
         required: true
+    },
+    route: {
+        type: String,
+        required: true
+    },
+    routeIcon: {
+        type: String,
+        required: true
+    },
+    albumTitle: {
+        type: String,
+    },
+    albumYear: {
+        type: Number,
+    }, 
+    label: {
+        type: String,
     }
+
 });
 </script>
