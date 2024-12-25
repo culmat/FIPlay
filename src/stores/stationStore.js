@@ -1,7 +1,7 @@
 // Utilities
 import { defineStore } from 'pinia'
 
-export const useStationStore = defineStore('app', {
+export const useStationStore = defineStore('stations', {
   state: () => ({
     stations: {}
   }),
@@ -11,3 +11,4 @@ export const useStationStore = defineStore('app', {
     }
   }
 })
+

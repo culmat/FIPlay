@@ -1,11 +1,17 @@
 <template>
-  <v-footer height="40" app>
-
-  FIPlay
-
+  <v-footer height="40" app style="position: fixed; bottom: 0; width: 100%; z-index: 1000;">
+    FIPlay &nbsp;
+    <v-btn :prepend-icon="appStore.playing ? 'mdi-pause' : 'mdi-play'" size="x-small" @click="togglePlay" :disabled="!appStore.stationLabel">{{ appStore.stationLabel }}</v-btn>
+    <v-btn size="x-small" :disabled="!appStore.stationLabel" @click="adjustVolume(false)"><b>-</b></v-btn>
+    <v-btn size="x-small" :disabled="!appStore.stationLabel"@click="adjustVolume(true)"><b>+</b></v-btn>
+    
+    <div
+    class="text-caption text-disabled"
+    style="position: absolute; right: 16px;"
+    >
     <a
-      v-for="item in items"
-      :key="item.title"
+    v-for="item in items"
+    :key="item.title"
       :href="item.href"
       :title="item.title"
       class="d-inline-block mx-2 social-link"
@@ -15,13 +21,14 @@
       <v-icon
         :icon="item.icon"
         :size="item.icon === '$vuetify' ? 24 : 16"
-      />
-    </a>
-
-    <div
-      class="text-caption text-disabled"
-      style="position: absolute; right: 16px;"
-    >
+        />
+      </a>
+      
+      <v-icon size="x-small" 
+      :icon="appStore.connected ? 'mdi-antenna' : 'mdi-alert'"
+      :color="appStore.connected ? 'success' : 'warning'"
+      ></v-icon> 
+      &nbsp;
       
       <a
         class="text-decoration-none on-surface"
@@ -43,6 +50,9 @@
       href: 'https://github.com/culmat/FIPlay',
     },
   ]
+  import { useAppStore } from '@/stores/appStore';
+  import { togglePlay,adjustVolume } from '../main';
+  const appStore = useAppStore();
 </script>
 
 <style scoped lang="sass">
