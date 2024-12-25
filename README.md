@@ -10,7 +10,7 @@ fnm use --install-if-missing 22
 pnpm dev
 
 pnpm build
-npx http-server .\dist\
+npx http-server .\dist\ -o /FIPlay
 
 ```
 
