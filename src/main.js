@@ -37,6 +37,7 @@ const stations = {
     fip_groove: '💃 Groove',
     fip_nouveautes: '🆕 Nouveautés',
     fip_electro: '🎛️ Electro',
+    fip_sacre_francais: '🥖 Sacré Français',
     fip: '📻 FIP'
 }
 
