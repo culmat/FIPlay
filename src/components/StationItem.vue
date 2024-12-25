@@ -17,6 +17,7 @@
                         class="ms-2"
                         :icon="routeIcon"
                         variant="text"
+                        size="x-large"
                       ></v-btn>
                     </v-card-actions>
                   </div>

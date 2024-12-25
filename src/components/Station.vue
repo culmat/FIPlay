@@ -5,11 +5,13 @@
         max-width="900"
       >
     <v-list>
-      <v-list-item
-        v-for="station in stationStore.stations"
-        :key="station.stationName"
+      <template
+      v-for="station in stationStore.stations"
+      :key="station.stationName"
       >
-        <StationItem v-if="station.stationName === stationName"
+      
+        <v-list-item  v-if="station.stationName === stationName">
+        <StationItem
           :stationName="station.stationName" 
           :stationLabel="stationStore.stations[stationName].stationLabel" 
           :songTitle="stationStore.stations[stationName].now.firstLine.title" 
@@ -20,8 +22,9 @@
           :label="stationStore.stations[stationName].now.song.release.label" 
           :albumTitle="stationStore.stations[stationName].now.song.release.title"
           :albumYear="stationStore.stations[stationName].now.song.year" 
-        />
-      </v-list-item>
+          />
+        </v-list-item>
+      </template>
     </v-list>
     </v-responsive>
     </v-container>
