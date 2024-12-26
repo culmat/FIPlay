@@ -71,7 +71,7 @@ export default defineConfig({
       },
     },
   },
-  base: '/FIPlay/',
+  base: '/FIPlay',
   build: {
     outDir: 'dist/FIPlay'
   },

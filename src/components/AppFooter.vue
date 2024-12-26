@@ -3,8 +3,11 @@
     FIPlay &nbsp;
     <v-btn :prepend-icon="appStore.playing ? 'mdi-pause' : 'mdi-play'" size="x-small" @click="togglePlay" :disabled="!appStore.stationLabel">{{ appStore.stationLabel }}</v-btn>
     <v-btn size="x-small" :disabled="!appStore.stationLabel" @click="adjustVolume(false)"><b>-</b></v-btn>
-    <v-btn size="x-small" :disabled="!appStore.stationLabel"@click="adjustVolume(true)"><b>+</b></v-btn>
-    
+    <v-btn size="x-small" :disabled="!appStore.stationLabel" @click="adjustVolume(true)"><b>+</b></v-btn>
+    <v-btn :prepend-icon="appStore.clientSound ? 'mdi-volume-off' : 'mdi-volume-high'" size="x-small" 
+        @click="toggleClientSound">
+    </v-btn>
+
     <div
     class="text-caption text-disabled"
     style="position: absolute; right: 16px;"
@@ -24,7 +27,7 @@
         />
       </a>
       
-      <v-icon size="x-small" 
+      <v-icon v-if="appStore.backend" size="x-small" 
       :icon="appStore.connected ? 'mdi-antenna' : 'mdi-alert'"
       :color="appStore.connected ? 'success' : 'warning'"
       ></v-icon> 
@@ -51,7 +54,7 @@
     },
   ]
   import { useAppStore } from '@/stores/appStore';
-  import { togglePlay,adjustVolume } from '../main';
+  import { togglePlay,adjustVolume,toggleClientSound } from '../main';
   const appStore = useAppStore();
 </script>
 

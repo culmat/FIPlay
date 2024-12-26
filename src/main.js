@@ -15,7 +15,7 @@ import { createApp } from 'vue'
 import { useStationStore } from '@/stores/stationStore';
 import { useAppStore } from '@/stores/appStore';
 import router from './router'
-export { togglePlay,adjustVolume }
+export { togglePlay,adjustVolume,toggleClientSound }
 
 const app = createApp(App)
 
@@ -74,8 +74,23 @@ for (const [stationName, stationLabel] of Object.entries(stations)) {
     //if(stationName == 'fip_pop') break
 }
 
-var backend
 var audio
+var checkBackEndConnectionTimer
+function checkBackEndConnection() { 
+    if(!appStore.backend) {
+        return
+    }
+    console.warn('Backend not implemented');
+    appStore.connected = false;
+    if(checkBackEndConnectionTimer) {
+        clearTimeout(checkBackEndConnectionTimer);
+    }
+    checkBackEndConnectionTimer = setTimeout(() => {
+        checkBackEndConnection();
+        }, 
+        5000
+    );
+}
 
 function adjustVolume(louder) {
     if(!audio) {
@@ -89,46 +104,72 @@ function adjustVolume(louder) {
     }
     console.debug('Volume:', audio.volume);
 }    
-
-function togglePlay() {
-    if(!audio) {
-        console.warn('No audio object');
-        return;
-    }
-    if(audio.paused) {
+function toggleClientSound() {
+    appStore.clientSound = !appStore.clientSound;
+    if(appStore.clientSound && appStore.playing && audio) {
         audio.play().catch(error => {
             console.error('Error playing audio:', error);
         });
-    } else {
+    } else if(!appStore.clientSound && audio) {
         audio.pause();
     }
-    appStore.playing = !audio.paused;
+}
+
+function togglePlay() {
+    appStore.playing = !appStore.playing;
+    if(appStore.backend){
+        console.warn('Backend not implemented');
+    }
+    if(audio) {
+        if(audio.paused) {
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+            });
+        } else {
+            audio.pause();
+        }
+    }
+}
+
+router.beforeEach((to, from, next) => {
+    if (to.query.backend) {
+        appStore.backend = to.query.backend;
+      }
+      next();
+});
+
+async function playStation(stationName) {
+    const waitForStation = () => new Promise((resolve) => {
+        const checkStation = () => {
+            if (stationStore.stations[stationName]) {
+                resolve();
+            } else {
+                setTimeout(checkStation, 100);
+            }
+        };
+        checkStation();
+    });
     
+    await waitForStation();
+    const highestBitrateSource = stationStore.stations[stationName].now.media.sources.reduce((prev, current) => {
+        return (prev.bitrate > current.bitrate) ? prev : current;
+      });
+  
+      console.debug(`Media source URL with highest bitrate: ${highestBitrateSource.url}`);
+      if(audio && !audio.paused) {
+          audio.pause();
+      }
+      audio = new Audio(highestBitrateSource.url);
+      appStore.stationLabel = stationStore.stations[stationName].stationLabel
+      togglePlay();
 }
 
 router.afterEach((to, from) => {
-  if (to.query.backend) {
-    backend = to.query.backend;
-  }
   if (to.fullPath.startsWith('/station/')) {
-    if(!backend) {
-      console.warn('No backend specified');
-    }
     const stationName = to.fullPath.substring('/station/'.length);
-    console.log(`Now playing: ${stationName}`);
-    
-    const highestBitrateSource = stationStore.stations[stationName].now.media.sources.reduce((prev, current) => {
-      return (prev.bitrate > current.bitrate) ? prev : current;
-    });
-
-    console.log(`Media source URL with highest bitrate: ${highestBitrateSource.url}`);
-    if(audio && !audio.paused) {
-        togglePlay();
-    }
-    audio = new Audio(highestBitrateSource.url);
-    appStore.stationLabel = stationStore.stations[stationName].stationLabel
-    togglePlay();
+    console.debug(`Now playing: ${stationName}`);
+    playStation(stationName);
   }
 })
 
-
+checkBackEndConnection()
