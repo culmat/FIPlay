@@ -16,8 +16,8 @@
       </v-btn>
     </v-btn-toggle>
     <v-form v-if="uiStore.activePlayer.stationLabel">
-      <v-slider v-model="uiStore.activePlayer.volume" max="1" :min="0" class="align-center" hide-details
-        style="width: 150px" show-ticks="always" step="0.1">
+      <v-slider v-model="uiStore.activePlayer.volume" max="100" :min="0" class="align-center" hide-details
+        style="width: 150px" show-ticks="always" step="10">
       </v-slider>
     </v-form>
 

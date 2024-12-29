@@ -9,13 +9,13 @@ export default class RoomBackEnd extends Backend {
         if (this.volume < 0) {
             super.setVolume(udn, '-100');
             this.volume = 0;
-            await this.setVolume(udn, 0.4);
+            await this.setVolume(udn, 40);
         }
         return this.volume;
     }
 
     async setVolume(udn, volume) {
-        const diff = Math.round(Math.abs(this.volume - volume) * 100);
+        const diff = Math.abs(this.volume - volume);
         const sign = this.volume < volume ? '+' : '-';
         await super.setVolume(udn, sign + diff);
         this.volume = volume;

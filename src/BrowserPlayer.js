@@ -3,7 +3,7 @@ export default class BrowserPlayer {
         this.audio = new Audio();
     }
     setVolume(volume) {
-        this.audio.volume = volume;
+        this.audio.volume = volume / 100;
     }
 
     playURL(url) {

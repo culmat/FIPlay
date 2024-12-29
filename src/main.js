@@ -44,7 +44,7 @@ const stations = {
 
 const players = {}
 
-function addPlayer(player, name, volume = 1) {
+function addPlayer(player, name, volume = 100) {
     if (!players[name]) {
         players[name] = player;
         uiStore.addPlayer(name, volume);
