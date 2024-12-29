@@ -7,7 +7,7 @@ export default class RoomBackEnd extends Backend {
 
     async getVolume(udn) {
         if (this.volume < 0) {
-            super.setVolume(udn, '-100');
+            await super.setVolume(udn, '-100');
             this.volume = 0;
             await this.setVolume(udn, 40);
         }

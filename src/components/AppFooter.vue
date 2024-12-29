@@ -15,7 +15,7 @@
         <v-icon>mdi-play</v-icon>
       </v-btn>
     </v-btn-toggle>
-    <v-form v-if="uiStore.activePlayer.stationLabel">
+    <v-form >
       <v-slider v-model="uiStore.activePlayer.volume" max="100" :min="0" class="align-center" hide-details
         style="width: 150px" show-ticks="always" step="10">
       </v-slider>
