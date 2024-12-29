@@ -1,9 +1,9 @@
 <template>
-  <v-footer app style="position: fixed; bottom: 0; width: 100%; z-index: 1000;">
+  <v-footer app style="position: fixed; bottom: 0; width: 100%; z-index: 1000;" class="d-flex flex-wrap">
     FIPlay &nbsp;
 
     <v-btn size="x-small" v-if="uiStore.activePlayer.stationLabel"
-      @click="() => $router.push({ path: '/station/' + uiStore.activePlayer.stationName, query: { play: false } })">
+      @click="() => $router.push({ path: '/station/' + uiStore.activePlayer.stationName, query: { play: false, backend: $route.query.backend } })">
       {{ uiStore.activePlayer.stationLabel}}</v-btn>
 
     <v-btn-toggle v-model="uiStore.activePlayer.playing">
@@ -22,19 +22,14 @@
     </v-form>
 
     <v-form v-if="uiStore.players.length > 1">
-      <v-select :items="uiStore.players" v-model="uiStore.playerName" variant="solo" density="compact"></v-select>
+      <v-select :items="uiStore.players" v-model="uiStore.playerName" variant="underlined" density="compact"></v-select>
     </v-form>
-    <div class="text-caption text-disabled" style="position: absolute; right: 16px;">
+
+    <div class="text-caption text-disabled ms-auto">
       <a v-for="item in items" :key="item.title" :href="item.href" :title="item.title"
         class="d-inline-block mx-2 social-link" rel="noopener noreferrer" target="_blank">
         <v-icon :icon="item.icon" size="16" />
       </a>
-
-      <!-- 
-          <v-icon v-if="appStore.backend" size="x-small" :icon="appStore.connected ? 'mdi-antenna' : 'mdi-alert'"
-          :color="appStore.connected ? 'success' : 'warning'"></v-icon>
-          &nbsp;
-          -->
 
       <a class="text-decoration-none on-surface" href="https://github.com/culmat/FIPlay/blob/main/LICENSE"
         rel="noopener noreferrer" target="_blank">

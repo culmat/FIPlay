@@ -1,34 +1,25 @@
 <template>
-    <v-container class="fill-height">
-      <v-responsive
-        class="align-centerfill-height mx-auto"
-        max-width="900"
-      >
-    <v-list>
-      <template
-      v-for="station in stationStore.stations"
-      :key="station.stationName"
-      >
-      
-        <v-list-item  v-if="station.stationName === stationName">
-        <StationItem
-          :stationName="station.stationName" 
-          :stationLabel="stationStore.stations[stationName].stationLabel" 
-          :songTitle="stationStore.stations[stationName].now.firstLine.title" 
-          :artist="stationStore.stations[stationName].now.secondLine.title" 
-          :image="stationStore.stations[stationName].now.visuals.card.webpSrc"
-          route="/"
-          routeIcon="mdi-view-list"
-          :label="stationStore.stations[stationName].now.song.release.label" 
-          :albumTitle="stationStore.stations[stationName].now.song.release.title"
-          :albumYear="stationStore.stations[stationName].now.song.year" 
-          />
-        </v-list-item>
-      </template>
-    </v-list>
+  <v-container>
+    <v-responsive class="align-centerfill-height mx-auto" max-width="900">
+      <v-list>
+        <template v-for="station in stationStore.stations" :key="station.stationName">
+
+          <v-list-item v-if="station.stationName === stationName">
+            <StationItem :stationName="station.stationName"
+              :stationLabel="stationStore.stations[stationName].stationLabel"
+              :songTitle="stationStore.stations[stationName].now.firstLine.title"
+              :artist="stationStore.stations[stationName].now.secondLine.title"
+              :image="stationStore.stations[stationName].now.visuals.card.webpSrc" route="/" routeIcon="mdi-view-list"
+              :label="stationStore.stations[stationName].now.song.release.label"
+              :albumTitle="stationStore.stations[stationName].now.song.release.title"
+              :albumYear="stationStore.stations[stationName].now.song.year">
+              </StationItem>
+          </v-list-item>
+        </template>
+      </v-list>
     </v-responsive>
-    </v-container>
-  </template>
+  </v-container>
+</template>
 
 
 <script setup>
