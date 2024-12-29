@@ -1,44 +1,43 @@
 <template>
-  <v-footer height="40" app style="position: fixed; bottom: 0; width: 100%; z-index: 1000;">
+  <v-footer app style="position: fixed; bottom: 0; width: 100%; z-index: 1000;">
     FIPlay &nbsp;
-    <v-btn :prepend-icon="appStore.playing ? 'mdi-pause' : 'mdi-play'" size="x-small" @click="togglePlay" :disabled="!appStore.stationLabel">{{ appStore.stationLabel }}</v-btn>
-    <v-btn size="x-small" :disabled="!appStore.stationLabel" @click="adjustVolume(false)"><b>-</b></v-btn>
-    <v-btn size="x-small" :disabled="!appStore.stationLabel" @click="adjustVolume(true)"><b>+</b></v-btn>
-    <v-btn :prepend-icon="appStore.clientSound ? 'mdi-volume-off' : 'mdi-volume-high'" size="x-small" 
-        @click="toggleClientSound">
-    </v-btn>
 
-    <div
-    class="text-caption text-disabled"
-    style="position: absolute; right: 16px;"
-    >
-    <a
-    v-for="item in items"
-    :key="item.title"
-      :href="item.href"
-      :title="item.title"
-      class="d-inline-block mx-2 social-link"
-      rel="noopener noreferrer"
-      target="_blank"
-    >
-      <v-icon
-        :icon="item.icon"
-        :size="item.icon === '$vuetify' ? 24 : 16"
-        />
+    <v-btn size="x-small" v-if="uiStore.activePlayer.stationLabel"
+      @click="() => $router.push({ path: '/station/' + uiStore.activePlayer.stationName, query: { play: false } })">
+      {{ uiStore.activePlayer.stationLabel}}</v-btn>
+
+    <v-btn-toggle v-model="uiStore.activePlayer.playing">
+      <v-btn size="x-small" value="false" v-if="uiStore.activePlayer.stationLabel">
+        <v-icon>mdi-pause</v-icon>
+      </v-btn>
+
+      <v-btn size="x-small" value="true" v-if="uiStore.activePlayer.stationLabel">
+        <v-icon>mdi-play</v-icon>
+      </v-btn>
+    </v-btn-toggle>
+    <v-form v-if="uiStore.activePlayer.stationLabel">
+      <v-slider v-model="uiStore.activePlayer.volume" max="1" :min="0" class="align-center" hide-details
+        style="width: 150px" show-ticks="always" step="0.1">
+      </v-slider>
+    </v-form>
+
+    <v-form v-if="uiStore.players.length > 1">
+      <v-select :items="uiStore.players" v-model="uiStore.playerName" variant="solo" density="compact"></v-select>
+    </v-form>
+    <div class="text-caption text-disabled" style="position: absolute; right: 16px;">
+      <a v-for="item in items" :key="item.title" :href="item.href" :title="item.title"
+        class="d-inline-block mx-2 social-link" rel="noopener noreferrer" target="_blank">
+        <v-icon :icon="item.icon" size="16" />
       </a>
-      
-      <v-icon v-if="appStore.backend" size="x-small" 
-      :icon="appStore.connected ? 'mdi-antenna' : 'mdi-alert'"
-      :color="appStore.connected ? 'success' : 'warning'"
-      ></v-icon> 
-      &nbsp;
-      
-      <a
-        class="text-decoration-none on-surface"
-        href="https://github.com/culmat/FIPlay/blob/main/LICENSE"
-        rel="noopener noreferrer"
-        target="_blank"
-      >
+
+      <!-- 
+          <v-icon v-if="appStore.backend" size="x-small" :icon="appStore.connected ? 'mdi-antenna' : 'mdi-alert'"
+          :color="appStore.connected ? 'success' : 'warning'"></v-icon>
+          &nbsp;
+          -->
+
+      <a class="text-decoration-none on-surface" href="https://github.com/culmat/FIPlay/blob/main/LICENSE"
+        rel="noopener noreferrer" target="_blank">
         APACHE License
       </a>
     </div>
@@ -53,9 +52,8 @@
       href: 'https://github.com/culmat/FIPlay',
     },
   ]
-  import { useAppStore } from '@/stores/appStore';
-  import { togglePlay,adjustVolume,toggleClientSound } from '../main';
-  const appStore = useAppStore();
+import { useUIStore } from '@/stores/uiStore';
+const uiStore = useUIStore();
 </script>
 
 <style scoped lang="sass">

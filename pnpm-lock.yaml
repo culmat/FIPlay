@@ -11,6 +11,9 @@ importers:
       '@mdi/font':
         specifier: 7.4.47
         version: 7.4.47
+      bowser:
+        specifier: ^2.11.0
+        version: 2.11.0
       roboto-fontface:
         specifier: '*'
         version: 0.10.0
@@ -553,6 +556,9 @@ packages:
 
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
+
+  bowser@2.11.0:
+    resolution: {integrity: sha512-AlcaJBi/pqqJBIQ8U9Mcpc9i8Aqxn88Skv5d+xBX006BY5u8N3mGLHa5Lgppa7L/HfwgwLgZ6NYs+Ag6uUmJRA==}
 
   brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
@@ -2121,7 +2127,7 @@ snapshots:
 
   '@vue/shared@3.5.13': {}
 
-  '@vuetify/loader-shared@2.0.3(vue@3.5.13)(vuetify@3.7.6)':
+  '@vuetify/loader-shared@2.0.3(vue@3.5.13)(vuetify@3.7.6(vite-plugin-vuetify@2.0.4)(vue@3.5.13))':
     dependencies:
       upath: 2.0.1
       vue: 3.5.13
@@ -2217,6 +2223,8 @@ snapshots:
   binary-extensions@2.3.0: {}
 
   boolbase@1.0.0: {}
+
+  bowser@2.11.0: {}
 
   brace-expansion@1.1.11:
     dependencies:
@@ -3547,7 +3555,7 @@ snapshots:
 
   vite-plugin-vuetify@2.0.4(vite@5.4.11(sass-embedded@1.83.0)(sass@1.77.8))(vue@3.5.13)(vuetify@3.7.6):
     dependencies:
-      '@vuetify/loader-shared': 2.0.3(vue@3.5.13)(vuetify@3.7.6)
+      '@vuetify/loader-shared': 2.0.3(vue@3.5.13)(vuetify@3.7.6(vite-plugin-vuetify@2.0.4)(vue@3.5.13))
       debug: 4.4.0
       upath: 2.0.1
       vite: 5.4.11(sass-embedded@1.83.0)(sass@1.77.8)

@@ -1,9 +1,3 @@
-/**
- * main.js
- *
- * Bootstraps Vuetify and other plugins then mounts the App`
- */
-
 // Plugins
 import { registerPlugins } from '@/plugins'
 
@@ -13,9 +7,16 @@ import App from './App.vue'
 // Composables
 import { createApp } from 'vue'
 import { useStationStore } from '@/stores/stationStore';
-import { useAppStore } from '@/stores/appStore';
+import { useUIStore } from '@/stores/uiStore';
 import router from './router'
-export { togglePlay,adjustVolume,toggleClientSound }
+import StationWatcher from './StationWatcher'
+import RoomBackend from './RoomBackend'
+import ZoneBackend from './ZoneBackend'
+import Bowser from "bowser";
+import BackendPlayer from './BackendPlayer';
+import BrowserPlayer from './BrowserPlayer';
+import { VToolbarItems } from 'vuetify/components/VToolbar';
+const browser = Bowser.getParser(window.navigator.userAgent);
 
 const app = createApp(App)
 
@@ -24,7 +25,7 @@ registerPlugins(app)
 app.mount('#app')
 
 const stationStore = useStationStore();
-const appStore = useAppStore();
+const uiStore = useUIStore();
 
 const stations = {
     fip_reggae: '☮️ Reggae',
@@ -41,101 +42,44 @@ const stations = {
     fip: '📻 FIP'
 }
 
-class StationWatcher {
-    constructor(delayToRefresh, stationName, stationLabel) {
-        this.stationName = stationName;
-        this.stationLabel = stationLabel;
-        this.scheduleNextRefresh(delayToRefresh);
-    }
-    scheduleNextRefresh(delayToRefresh) {
-        console.debug(this.stationName+' will refresh at '+ new Date(Date.now() + delayToRefresh));
-        setTimeout(() => {
-            this.getStationInfo();
-            }, 
-            delayToRefresh
-        );
-    }
-    getStationInfo() {
-        fetch('https://fip-metadata.fly.dev/api/metadata/'+this.stationName)
-            .then(response => response.json())
-            .then(station => {
-                station.stationLabel = this.stationLabel;
-                stationStore.updateStation(station);
-                this.scheduleNextRefresh(station.delayToRefresh);
-            })
-            .catch(error => {
-                console.error('Error fetching metadata:', error);
-            });
-    }
+const players = {}
 
+function addPlayer(player, name, volume = 1) {
+    if (!players[name]) {
+        players[name] = player;
+        uiStore.addPlayer(name, volume);
+    }
 }
+
+addPlayer(new BrowserPlayer(), `${browser.getBrowserName()} / ${browser.getOSName()}`);
+
+
 for (const [stationName, stationLabel] of Object.entries(stations)) {
-    new StationWatcher(0, stationName, stationLabel);
+    new StationWatcher(0, stationName, stationLabel, stationStore.updateStation);
     //if(stationName == 'fip_pop') break
 }
 
-var audio
-var checkBackEndConnectionTimer
-function checkBackEndConnection() { 
-    if(!appStore.backend) {
-        return
-    }
-    console.warn('Backend not implemented');
-    appStore.connected = false;
-    if(checkBackEndConnectionTimer) {
-        clearTimeout(checkBackEndConnectionTimer);
-    }
-    checkBackEndConnectionTimer = setTimeout(() => {
-        checkBackEndConnection();
-        }, 
-        5000
-    );
-}
-
-function adjustVolume(louder) {
-    if(!audio) {
-        console.warn('No audio object');
-        return;
-    }
-    if(louder) {
-        audio.volume = Math.min(1, audio.volume + 0.1);
-    } else {
-        audio.volume = Math.max(0, audio.volume - 0.1);
-    }
-    console.debug('Volume:', audio.volume);
-}    
-function toggleClientSound() {
-    appStore.clientSound = !appStore.clientSound;
-    if(appStore.clientSound && appStore.playing && audio) {
-        audio.play().catch(error => {
-            console.error('Error playing audio:', error);
-        });
-    } else if(!appStore.clientSound && audio) {
-        audio.pause();
-    }
-}
-
-function togglePlay() {
-    appStore.playing = !appStore.playing;
-    if(appStore.backend){
-        console.warn('Backend not implemented');
-    }
-    if(audio) {
-        if(audio.paused) {
-            audio.play().catch(error => {
-                console.error('Error playing audio:', error);
-            });
-        } else {
-            audio.pause();
-        }
-    }
-}
+const backends = []
 
 router.beforeEach((to, from, next) => {
-    if (to.query.backend) {
-        appStore.backend = to.query.backend;
-      }
-      next();
+    if (backends.length == 0 && to.query.backend) {
+        backends.push(new RoomBackend(to.query.backend));
+        backends.push(new ZoneBackend(to.query.backend));
+        for (const backend of backends) {
+            backend.list().then(items => {
+                items.forEach(item => {
+                    backend.getVolume(item.udn).then(volume => {
+                        addPlayer(new BackendPlayer(backend, item.udn), item.name, volume);
+                    }).catch(error => {
+                        console.error(`Error fetching volume for item ${item.name}:`, error);
+                    });
+                });
+            }).catch(error => {
+                console.error('Error fetching items:', error);
+            });
+        }
+    }
+    next();
 });
 
 async function playStation(stationName) {
@@ -149,27 +93,47 @@ async function playStation(stationName) {
         };
         checkStation();
     });
-    
+
     await waitForStation();
     const highestBitrateSource = stationStore.stations[stationName].now.media.sources.reduce((prev, current) => {
         return (prev.bitrate > current.bitrate) ? prev : current;
-      });
-  
-      console.debug(`Media source URL with highest bitrate: ${highestBitrateSource.url}`);
-      if(audio && !audio.paused) {
-          audio.pause();
-      }
-      audio = new Audio(highestBitrateSource.url);
-      appStore.stationLabel = stationStore.stations[stationName].stationLabel
-      togglePlay();
+    });
+
+
+    uiStore.activePlayer.stationLabel = stationStore.stations[stationName].stationLabel;
+    uiStore.activePlayer.stationURL = highestBitrateSource.url;
+    uiStore.activePlayer.playing = "true";
+    uiStore.activePlayer.stationName = stationName;
+    console.debug("playing ", stationName, uiStore.activePlayer.stationURL, players[uiStore.playerName])
+    players[uiStore.playerName].playURL(uiStore.activePlayer.stationURL);
 }
 
 router.afterEach((to, from) => {
-  if (to.fullPath.startsWith('/station/')) {
-    const stationName = to.fullPath.substring('/station/'.length);
-    console.debug(`Now playing: ${stationName}`);
-    playStation(stationName);
-  }
+    if (to.fullPath != from.fullPath &&
+        to.query.play != 'false' &&
+        to.fullPath.startsWith('/station/')) {
+        const stationName = to.fullPath.substring('/station/'.length);
+        console.debug(`Now playing: ${stationName}`);
+        playStation(stationName);
+    }
+    if (to.query.play == 'false') {
+        const newUrl = to.href.replace('?play=false', '');
+        history.replaceState(null, '', newUrl);
+    }
 })
 
-checkBackEndConnection()
+
+uiStore.$subscribe((mutation, state) => {
+    if (mutation.events.key == "playing") {
+        if (mutation.events.newValue == undefined) {
+            uiStore.activePlayer.playing = mutation.events.oldValue;
+        } else if (mutation.events.newValue == "true") {
+            players[uiStore.playerName].play();
+        }
+        else if (mutation.events.newValue == "false") {
+            players[uiStore.playerName].pause();
+        }
+    } else if (mutation.events.key == "volume") {
+        players[uiStore.playerName].setVolume(mutation.events.newValue);
+    }
+})
