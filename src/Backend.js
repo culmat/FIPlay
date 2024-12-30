@@ -8,13 +8,21 @@ export default class Backend {
         } else {
             throw new Error('Invalid path. Expected room or zone but got ' + path);
         }
+        this.update();
         this.backendURL = this.backendURL + path + '/';
-
     }
     async list() {
         try {
             const response = await fetch(this.listPathURL);
             return (await response.json()).data;
+        } catch (error) {
+            console.error('Error :', error);
+            throw error;
+        }
+    }
+    async update() {
+        try {
+            fetch(this.backendURL + 'update');
         } catch (error) {
             console.error('Error :', error);
             throw error;
