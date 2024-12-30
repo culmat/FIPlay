@@ -49,8 +49,6 @@ const calculateProgress = () => {
   const now = stationStore.stations[props.stationName].now
   const nowTime = new Date().getTime();
   const totalTime = now.endTime  - now.startTime ;
-  console.log("tt ", totalTime, props.stationName);
-  console.log("nt", (nowTime - now.startTime * 1000) / 1000, props.stationName);
 
   const elapsedTime = (nowTime - now.startTime * 1000) / 1000
   

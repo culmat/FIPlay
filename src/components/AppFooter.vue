@@ -20,7 +20,7 @@
         style="width: 150px" show-ticks="always" step="10">
       </v-slider>
     </v-form>
-
+    &nbsp;
     <v-form v-if="uiStore.players.length > 1">
       <v-select :items="uiStore.players" v-model="uiStore.playerName" variant="underlined" density="compact"></v-select>
     </v-form>
