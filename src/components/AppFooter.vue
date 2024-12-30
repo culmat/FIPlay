@@ -1,6 +1,8 @@
 <template>
   <v-footer app style="position: fixed; bottom: 0; width: 100%; z-index: 1000;" class="d-flex flex-wrap">
-    FIPlay &nbsp;
+    <v-btn size="x-small" @click="() => $router.push('/')">
+      FIPlay </v-btn>
+    &nbsp;
 
     <v-btn size="x-small" v-if="uiStore.activePlayer.stationLabel"
       @click="() => $router.push({ path: '/station/' + uiStore.activePlayer.stationName, query: { play: false, backend: $route.query.backend } })">
@@ -15,7 +17,7 @@
         <v-icon>mdi-play</v-icon>
       </v-btn>
     </v-btn-toggle>
-    <v-form >
+    <v-form>
       <v-slider v-model="uiStore.activePlayer.volume" max="100" :min="0" class="align-center" hide-details
         style="width: 150px" show-ticks="always" step="10">
       </v-slider>
