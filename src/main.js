@@ -122,18 +122,39 @@ router.afterEach((to, from) => {
     }
 })
 
+function deepCompare(obj1, obj2, path = '', changes = {}) {
+    for (const key in obj1) {
+        if (obj1.hasOwnProperty(key)) {
+            const newPath = path ? `${path}.${key}` : key;
+            if (typeof obj1[key] === 'object' && obj1[key] !== null && typeof obj2[key] === 'object' && obj2[key] !== null) {
+                deepCompare(obj1[key], obj2[key], newPath, changes);
+            } else if (obj1[key] !== obj2[key]) {
+                changes[newPath] = { from: obj1[key], to: obj2[key] };
+            }
+        }
+    }
+    return changes;
+}
 
+var lastStateCopy
 uiStore.$subscribe((mutation, state) => {
-    if (mutation.events.key == "playing") {
-        if (mutation.events.newValue == undefined) {
-            uiStore.activePlayer.playing = mutation.events.oldValue;
-        } else if (mutation.events.newValue == "true") {
-            players[uiStore.playerName].play();
+    const stateCopy = {};
+    stateCopy.activePlayer = JSON.parse(JSON.stringify(uiStore.activePlayer));
+    if (!lastStateCopy) {
+        lastStateCopy = stateCopy;
+    } else {
+        var changes = deepCompare(lastStateCopy, stateCopy);
+        if (changes['activePlayer.volume']) {
+            players[uiStore.playerName].setVolume(changes['activePlayer.volume'].to);
+        } else if (changes['activePlayer.playing']) {
+            if (changes['activePlayer.playing'].to == "true") {
+                players[uiStore.playerName].play();
+            } else if (changes['activePlayer.playing'].to == "false") {
+                players[uiStore.playerName].pause();
+            } else {
+                uiStore.activePlayer.playing = lastStateCopy.activePlayer.playing;
+            }
         }
-        else if (mutation.events.newValue == "false") {
-            players[uiStore.playerName].pause();
-        }
-    } else if (mutation.events.key == "volume") {
-        players[uiStore.playerName].setVolume(mutation.events.newValue);
+        lastStateCopy = stateCopy;
     }
 })
