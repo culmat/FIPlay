@@ -28,18 +28,18 @@ const stationStore = useStationStore();
 const uiStore = useUIStore();
 
 const stations = {
+    fip: '📻 FIP',
     fip_reggae: '☮️ Reggae',
-    fip_pop: '🎤 Pop',
-    fip_metal: '🤘 Metal',
-    fip_hiphop: '🎧 Hiphop',
-    fip_rock: '🎸 Rock',
     fip_jazz: '🎷 Jazz',
     fip_world: '🌍 World',
     fip_groove: '💃 Groove',
     fip_nouveautes: '🆕 Nouveautés',
     fip_electro: '🎛️ Electro',
     fip_sacre_francais: '🥖 Sacré Français',
-    fip: '📻 FIP'
+    fip_rock: '🎸 Rock',
+    fip_metal: '🤘 Metal',
+    fip_hiphop: '🎧 Hiphop',
+    fip_pop: '🎤 Pop',
 }
 
 const players = {}
@@ -55,6 +55,14 @@ addPlayer(new BrowserPlayer(), `${browser.getBrowserName()} / ${browser.getOSNam
 
 
 for (const [stationName, stationLabel] of Object.entries(stations)) {
+    stationStore.updateStation({
+        stationName, stationLabel, now: {
+            firstLine: '',
+            secondLine: '',
+            visuals: { card: '' },
+            media: { sources: [] }
+        }
+    });
     new StationWatcher(0, stationName, stationLabel, stationStore.updateStation);
     //if(stationName == 'fip_pop') break
 }
