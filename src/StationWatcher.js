@@ -5,6 +5,7 @@ export default class StationWatcher {
         this.stationLabel = stationLabel;
         this.scheduleNextRefresh(delayToRefresh);
         this.updateStation = updateStation;
+        this.errorCount = 0;
     }
     scheduleNextRefresh(delayToRefresh) {
         console.debug(this.stationName + ' will refresh at ' + new Date(Date.now() + delayToRefresh));
@@ -24,6 +25,11 @@ export default class StationWatcher {
             })
             .catch(error => {
                 console.error('Error fetching metadata for ' + this.stationName + ':', error);
+                if (this.errorCount++ < 3) {
+                    this.scheduleNextRefresh(777 + this.errorCount * 222);
+                } else {
+                    console.error('Too many errors fetching metadata for ' + this.stationName + ':', error);
+                }
             });
     }
 
