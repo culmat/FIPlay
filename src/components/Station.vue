@@ -9,7 +9,7 @@
               :stationLabel="stationStore.stations[stationName].stationLabel"
               :songTitle="stationStore.stations[stationName].now.firstLine.title"
               :artist="stationStore.stations[stationName].now.secondLine.title"
-              :image="stationStore.stations[stationName].now.visuals.card.webpSrc" route="/" routeIcon="mdi-view-list"
+              :image="stationStore.stations[stationName].now.visuals.card.src" route="/" routeIcon="mdi-view-list"
               :label="stationStore.stations[stationName].now.song.release.label"
               :albumTitle="stationStore.stations[stationName].now.song.release.title"
               :albumYear="stationStore.stations[stationName].now.song.year">

@@ -14,7 +14,7 @@
         :stationLabel="station.stationLabel" 
         :songTitle="station.now.firstLine.title" 
         :artist="station.now.secondLine.title" 
-        :image="station.now.visuals.card.webpSrc"
+        :image="station.now.visuals.card.src"
         :route="'/station/'+station.stationName"
         routeIcon="mdi-play" 
       />

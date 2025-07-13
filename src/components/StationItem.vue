@@ -20,7 +20,7 @@
       </div>
 
       <v-avatar class="ma-3" rounded="0" size="200">
-        <v-img :src="image"></v-img>
+        <v-img :src="image + '/200x200'"></v-img>
       </v-avatar>
     </div>
   </v-card>
