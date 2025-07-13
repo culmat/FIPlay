@@ -12,30 +12,30 @@
   "dependencies": {
     "@mdi/font": "7.4.47",
     "bowser": "^2.11.0",
-    "roboto-fontface": "*",
-    "vue": "^3.4.31",
-    "vuetify": "^3.6.14"
+    "roboto-fontface": "^0.10.0",
+    "vue": "^3.5.17",
+    "vuetify": "^3.9.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.14.0",
-    "@vitejs/plugin-vue": "^5.0.5",
-    "eslint": "^9.14.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-n": "^16.6.2",
+    "@eslint/js": "^9.31.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "eslint": "^9.31.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.21.0",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^6.4.0",
-    "eslint-plugin-vue": "^9.30.0",
-    "pinia": "^2.1.7",
-    "sass": "1.77.8",
-    "sass-embedded": "^1.77.8",
-    "unplugin-auto-import": "^0.17.6",
-    "unplugin-fonts": "^1.1.1",
-    "unplugin-vue-components": "^0.27.2",
-    "unplugin-vue-router": "^0.10.0",
-    "vite": "^5.4.0",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-vue": "^10.3.0",
+    "pinia": "^3.0.3",
+    "sass": "1.89.2",
+    "sass-embedded": "^1.89.2",
+    "unplugin-auto-import": "^19.3.0",
+    "unplugin-fonts": "^1.3.1",
+    "unplugin-vue-components": "^28.8.0",
+    "unplugin-vue-router": "^0.14.0",
+    "vite": "^7.0.4",
     "vite-plugin-vue-layouts": "^0.11.0",
-    "vite-plugin-vuetify": "^2.0.3",
-    "vue-router": "^4.4.0"
+    "vite-plugin-vuetify": "^2.1.1",
+    "vue-router": "^4.5.1"
   },
-  "packageManager": "pnpm@9.10.0+sha512.73a29afa36a0d092ece5271de5177ecbf8318d454ecd701343131b8ebc0c1a91c487da46ab77c8e596d6acf1461e3594ced4becedf8921b074fbd8653ed7051c"
+  "packageManager": "pnpm@10.13.1"
 }
