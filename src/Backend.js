@@ -1,15 +1,14 @@
 export default class Backend {
     constructor(backendURL, path) {
-        this.backendURL = backendURL.endsWith('/') ? backendURL : backendURL + '/';
+        this.backendURLroot = backendURL.endsWith('/') ? backendURL : backendURL + '/';
         if (path == 'room') {
-            this.listPathURL = this.backendURL + 'unassignedRooms'
+            this.listPathURL = this.backendURLroot + 'unassignedRooms'
         } else if (path == 'zone') {
-            this.listPathURL = this.backendURL + 'zones'
+            this.listPathURL = this.backendURLroot + 'zones'
         } else {
             throw new Error('Invalid path. Expected room or zone but got ' + path);
         }
-        this.update();
-        this.backendURL = this.backendURL + path + '/';
+        this.backendURL = this.backendURLroot + path + '/';
     }
     async list() {
         try {
@@ -21,12 +20,17 @@ export default class Backend {
         }
     }
     async update() {
-        try {
-            fetch(this.backendURL + 'update');
-        } catch (error) {
-            console.error('Error :', error);
-            throw error;
+        if (!Backend.updated) {
+            Backend.updated = true;
+            try {
+                const response = await fetch(this.backendURLroot + 'update');
+                console.log('Updated');
+            } catch (error) {
+                console.error('Error :', error);
+                throw error;
+            }
         }
+        return this;
     }
     async getVolume(udn) {
         try {
@@ -90,6 +94,9 @@ export default class Backend {
             console.error('Error pausing:', error);
             throw error;
         }
+    }
+    prefix() {
+        return '';
     }
 
 }

@@ -71,21 +71,24 @@ const backends = []
 
 router.beforeEach((to, from, next) => {
     if (backends.length == 0 && to.query.backend) {
-        backends.push(new RoomBackend(to.query.backend));
-        backends.push(new ZoneBackend(to.query.backend));
-        for (const backend of backends) {
-            backend.list().then(items => {
-                items.forEach(item => {
-                    backend.getVolume(item.udn).then(volume => {
-                        addPlayer(new BackendPlayer(backend, item.udn), item.name, volume);
+        new ZoneBackend(to.query.backend).update()
+            .then((backend) => {
+                backends.push(backend);
+                backends.push(new RoomBackend(to.query.backend));
+                for (const backend of backends) {
+                    backend.list().then(items => {
+                        items.forEach(item => {
+                            backend.getVolume(item.udn).then(volume => {
+                                addPlayer(new BackendPlayer(backend, item.udn), backend.prefix() + item.name, volume);
+                            }).catch(error => {
+                                console.error(`Error fetching volume for item ${item.name}:`, error);
+                            });
+                        });
                     }).catch(error => {
-                        console.error(`Error fetching volume for item ${item.name}:`, error);
+                        console.error('Error fetching items:', error);
                     });
-                });
-            }).catch(error => {
-                console.error('Error fetching items:', error);
+                }
             });
-        }
     }
     next();
 });

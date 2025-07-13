@@ -30,5 +30,8 @@ export default class RoomBackEnd extends Backend {
         await super.stop(udn);
     }
 
+    prefix() {
+        return '| ';
+    }
 
 }
