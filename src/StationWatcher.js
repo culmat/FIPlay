@@ -1,4 +1,9 @@
 
+// Where the now-playing metadata comes from. Defaults to the public service, so
+// the GitHub Pages build keeps working; a deployment that runs its own copy
+// sets VITE_METADATA_URL at build time.
+const METADATA_URL = (import.meta.env.VITE_METADATA_URL || 'https://fip-metadata.fly.dev').replace(/\/$/, '')
+
 export default class StationWatcher {
     constructor(delayToRefresh, stationName, stationLabel, updateStation) {
         this.stationName = stationName;
@@ -16,7 +21,7 @@ export default class StationWatcher {
         );
     }
     getStationInfo() {
-        fetch('https://fip-metadata.fly.dev/api/metadata/' + this.stationName)
+        fetch(METADATA_URL + '/api/metadata/' + this.stationName)
             .then(response => response.json())
             .then(station => {
                 station.stationLabel = this.stationLabel;

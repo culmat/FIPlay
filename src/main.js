@@ -130,11 +130,15 @@ function startDiscovery(url) {
     // Ask the backend to rescan the network, but do not wait for it. It is by
     // far the slowest call, and the device list it refreshes is already kept
     // current by the backend itself, so blocking on it only delays the
-    // speakers from appearing. Run discovery again once it finishes, which
-    // picks up anything that was genuinely missing.
+    // speakers from appearing.
     discoverPlayers();
     backends[0].update()
-        .then(() => discoverPlayers())
+        .then(() => {
+            // Only look again if the first round came up empty. Repeating it
+            // once speakers are known just doubles the requests against a
+            // backend that answers one at a time and can be slow.
+            if (!Object.values(players).some(p => p instanceof BackendPlayer)) discoverPlayers();
+        })
         .catch(error => console.debug('Backend rescan failed:', error));
 }
 

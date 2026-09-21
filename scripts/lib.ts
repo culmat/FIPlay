@@ -22,11 +22,15 @@ export const DEV_PORT = 3000;
 export const APP_PATH = '/FIPlay/';
 export const DIST_DIR = resolve(REPO_ROOT, 'dist', 'FIPlay');
 
-/** Public endpoints already present in the code base / CI. */
-export const PUBLIC = {
-  metadata: 'https://fip-metadata.fly.dev/api/metadata/fip',
-  pages: 'https://culmat.github.io/FIPlay/',
-};
+export const DEFAULT_METADATA_URL = 'https://fip-metadata.fly.dev';
+
+/** The GitHub Pages build, which always uses the public metadata service. */
+export const PAGES_URL = 'https://culmat.github.io/FIPlay/';
+
+/** The metadata service this checkout builds against. */
+export function metadataURL(): string {
+  return envOr('VITE_METADATA_URL', DEFAULT_METADATA_URL).replace(/\/+$/, '');
+}
 
 export const ENV = {
   NAS_HOST: 'FIPLAY_NAS_HOST',
@@ -41,6 +45,7 @@ export const ENV = {
   CDP_PORT: 'BROWSER_CDP_PORT',
   PROFILE_DIR: 'BROWSER_PROFILE_DIR',
   BROWSER_URL: 'BROWSER_URL',
+  METADATA_URL: 'VITE_METADATA_URL',
 } as const;
 
 // Bun loads .env from the cwd. Fall back to parsing the repo's .env so the

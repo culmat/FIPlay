@@ -10,7 +10,7 @@
  * Uses from .env: FIPLAY_NAS_HOST, FIPLAY_NAS_USER, FIPLAY_NAS_WEB_URL, FIPLAY_BACKEND_URL
  */
 import { reportStatus } from './backend';
-import { ENV, PUBLIC, env, fetchJson, gap, gaps, gitInfo, httpStatus, info, joinUrl, ok, skip, sshOk, sshTarget, summary } from './lib';
+import { DEFAULT_METADATA_URL, ENV, PAGES_URL, env, fetchJson, gap, gaps, gitInfo, httpStatus, info, joinUrl, metadataURL, ok, skip, sshOk, sshTarget, summary } from './lib';
 
 type VersionInfo = { commit: string; short?: string; builtAt?: string; dirty?: boolean };
 
@@ -47,12 +47,21 @@ if (!webUrl) {
 if (sshWorks) await reportStatus();
 else skip('backend container check needs ssh');
 
-// --- public services -----------------------------------------------------------
-for (const [name, url] of Object.entries(PUBLIC)) {
-  const status = await httpStatus(url);
-  if (status === 200) ok(`${name}: ${url} -> 200`);
-  else gap('UNREACHABLE', `${name}: ${url} -> ${status ?? 'no answer'}`);
+// --- metadata service ----------------------------------------------------------
+const metadata = metadataURL();
+for (const station of ['fip', 'fip_sacre_francais']) {
+  const url = `${metadata}/api/metadata/${station}`;
+  const status = await httpStatus(url, 15_000);
+  if (status === 200) ok(`metadata ${station} -> 200`);
+  else gap('UNREACHABLE', `metadata ${station}: ${url} -> ${status ?? 'no answer'}`);
 }
+if (metadata === DEFAULT_METADATA_URL) info(`using the public metadata service; set ${ENV.METADATA_URL} to use your own`);
+else info(`metadata service: ${metadata}`);
+
+// --- published build -----------------------------------------------------------
+const pages = await httpStatus(PAGES_URL);
+if (pages === 200) ok(`pages: ${PAGES_URL} -> 200`);
+else gap('UNREACHABLE', `pages: ${PAGES_URL} -> ${pages ?? 'no answer'}`);
 
 // --- summary -------------------------------------------------------------------
 if (gaps() > 0) {

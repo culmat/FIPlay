@@ -34,6 +34,10 @@ export default defineConfig({
           styles: 'wght@100;300;400;500;700;900',
         }],
       },
+      // Without this the plugin preloads every font file in the bundle, which
+      // means all four Material Design Icons formats, about 2.2 MB, although
+      // the browser picks one. It also logs a warning per unused preload.
+      custom: { families: [], preload: false },
     }),
     AutoImport({
       imports: [
