@@ -45,11 +45,22 @@ const stations = {
 const players = {}
 
 // The stream URLs are https://icecast.radiofrance.fr/<slug>-<quality>.<ext>,
-// where <slug> is the station name without underscores. Invert that so a URL a
-// speaker is already playing can be traced back to a station in the list.
+// where <slug> is the station name without underscores. That lets a URL be
+// built for a station, and a URL a speaker holds be traced back to one.
+const STREAM_BASE = 'https://icecast.radiofrance.fr'
+
 const stationsByStreamSlug = Object.fromEntries(
     Object.keys(stations).map(name => [name.replaceAll('_', ''), name])
 )
+
+// Radio France publishes these two qualities for every FIP channel.
+function streamSources(stationName) {
+    const slug = stationName.replaceAll('_', '');
+    return [
+        { url: `${STREAM_BASE}/${slug}-hifi.aac`, bitrate: 192 },
+        { url: `${STREAM_BASE}/${slug}-midfi.mp3`, bitrate: 128 },
+    ];
+}
 
 function stationForStreamURL(url) {
     if (!url || !url.includes('icecast.radiofrance.fr')) return null;
@@ -86,6 +97,46 @@ const backends = []
 // built without it in several places, so remember it and put it back rather
 // than silently losing the speakers on the next navigation.
 let backendURL = null
+let discoveryStarted = false
+
+/**
+ * Register a player for every zone and room the backend reports.
+ *
+ * Safe to run more than once: addPlayer ignores names it already knows, so a
+ * later pass only adds speakers that have since appeared.
+ */
+function discoverPlayers() {
+    for (const backend of backends) {
+        backend.list().then(items => {
+            items.forEach(item => {
+                backend.getVolume(item.udn).then(volume => {
+                    const name = backend.prefix() + item.name;
+                    const isNew = !players[name];
+                    addPlayer(new BackendPlayer(backend, item.udn), name, volume, 'speaker');
+                    if (isNew) adoptPlayback(backend, item.udn, name);
+                }).catch(error => {
+                    console.error(`Error fetching volume for item ${item.name}:`, error);
+                });
+            });
+        }).catch(error => {
+            console.error('Error fetching items:', error);
+        });
+    }
+}
+
+function startDiscovery(url) {
+    backends.push(new ZoneBackend(url), new RoomBackend(url));
+
+    // Ask the backend to rescan the network, but do not wait for it. It is by
+    // far the slowest call, and the device list it refreshes is already kept
+    // current by the backend itself, so blocking on it only delays the
+    // speakers from appearing. Run discovery again once it finishes, which
+    // picks up anything that was genuinely missing.
+    discoverPlayers();
+    backends[0].update()
+        .then(() => discoverPlayers())
+        .catch(error => console.debug('Backend rescan failed:', error));
+}
 
 router.beforeEach((to, from, next) => {
     if (to.query.backend) {
@@ -94,27 +145,11 @@ router.beforeEach((to, from, next) => {
         next({ path: to.path, query: { ...to.query, backend: backendURL }, hash: to.hash, replace: true })
         return
     }
-    if (backends.length == 0 && to.query.backend) {
-        new ZoneBackend(to.query.backend).update()
-            .then((backend) => {
-                backends.push(backend);
-                backends.push(new RoomBackend(to.query.backend));
-                for (const backend of backends) {
-                    backend.list().then(items => {
-                        items.forEach(item => {
-                            backend.getVolume(item.udn).then(volume => {
-                                const name = backend.prefix() + item.name;
-                                addPlayer(new BackendPlayer(backend, item.udn), name, volume, 'speaker');
-                                adoptPlayback(backend, item.udn, name);
-                            }).catch(error => {
-                                console.error(`Error fetching volume for item ${item.name}:`, error);
-                            });
-                        });
-                    }).catch(error => {
-                        console.error('Error fetching items:', error);
-                    });
-                }
-            });
+    // Guarded synchronously: discovery takes a while, and without this every
+    // navigation made in the meantime started a second, competing round.
+    if (!discoveryStarted && to.query.backend) {
+        discoveryStarted = true;
+        startDiscovery(to.query.backend);
     }
     next();
 });
@@ -132,15 +167,13 @@ async function playStation(stationName) {
     });
 
     await waitForStation();
-    // The stream URLs come from the metadata service. Say so plainly when they
-    // are absent: reducing an empty or missing list throws, and inside this
-    // async function that surfaces only as an unhandled rejection.
+    // Prefer the stream list the metadata service supplies, but fall back to
+    // building it from the station name. Radio France stopped returning
+    // now.media.sources, and the URLs are derivable, so there is no reason for
+    // playback to depend on that field coming back.
     const sources = stationStore.stations[stationName].now.media?.sources;
-    if (!sources || sources.length == 0) {
-        console.error(`No stream URLs for ${stationName}; the metadata service returned no now.media.sources`);
-        return;
-    }
-    const highestBitrateSource = sources.reduce((prev, current) => {
+    const usable = (sources && sources.length) ? sources : streamSources(stationName);
+    const highestBitrateSource = usable.reduce((prev, current) => {
         return (prev.bitrate > current.bitrate) ? prev : current;
     });
 
@@ -178,6 +211,17 @@ async function adoptPlayback(backend, udn, playerName) {
     });
     syncStateSnapshot();
     console.debug(`${playerName} is already on ${stationName} (${state})`);
+
+    // Open that station, so arriving while the speakers are playing shows the
+    // track rather than the bare list. Only from the list, so it cannot pull
+    // the view away from a station opened deliberately, and with play=false so
+    // the navigation is not mistaken for a request to start playback.
+    if (router.currentRoute.value.path === '/') {
+        router.replace({
+            path: '/station/' + stationName,
+            query: { ...router.currentRoute.value.query, play: 'false' },
+        });
+    }
 }
 
 router.afterEach((to, from) => {
