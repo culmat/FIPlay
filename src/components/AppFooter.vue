@@ -23,8 +23,9 @@
       </v-slider>
     </v-form>
     &nbsp;
-    <v-form v-if="uiStore.players.length > 1">
-      <v-select :items="uiStore.players" v-model="uiStore.playerName" variant="underlined" density="compact"></v-select>
+    <v-form>
+      <v-select :items="uiStore.players" v-model="uiStore.playerName" variant="underlined" density="compact"
+        style="min-width: 150px"></v-select>
     </v-form>
 
     <div class="text-caption text-disabled ms-auto">

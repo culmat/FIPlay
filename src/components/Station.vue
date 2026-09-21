@@ -10,9 +10,9 @@
               :songTitle="stationStore.stations[stationName].now.firstLine.title"
               :artist="stationStore.stations[stationName].now.secondLine.title"
               :image="stationStore.stations[stationName].now.visuals.card.src" route="/" routeIcon="mdi-view-list"
-              :label="stationStore.stations[stationName].now.song.release.label"
-              :albumTitle="stationStore.stations[stationName].now.song.release.title"
-              :albumYear="stationStore.stations[stationName].now.song.year">
+              :label="stationStore.stations[stationName].now.song?.release?.label"
+              :albumTitle="stationStore.stations[stationName].now.song?.release?.title"
+              :albumYear="stationStore.stations[stationName].now.song?.year">
               <br />
               <v-progress-linear :key="componentKey" :model-value="progress.percentage">
               </v-progress-linear>

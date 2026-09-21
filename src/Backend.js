@@ -95,6 +95,38 @@ export default class Backend {
             throw error;
         }
     }
+
+    /**
+     * What the renderer currently holds, or null when it cannot say.
+     *
+     * Only zones answer these; rooms have no such endpoint. Both are optional
+     * for the app, so a failure is reported and swallowed rather than thrown.
+     */
+    async currentURL(udn) {
+        try {
+            const response = await fetch(this.backendURL + udn + '/media_info');
+            if (!response.ok) return null;
+            const info = (await response.json()).data;
+            return (info && info[0] && info[0].CurrentURI) || null;
+        } catch (error) {
+            console.debug('Could not read what is playing:', error);
+            return null;
+        }
+    }
+
+    /** 'PLAYING', 'PAUSED_PLAYBACK', 'STOPPED', or null when unavailable. */
+    async transportState(udn) {
+        try {
+            const response = await fetch(this.backendURL + udn + '/transport_info');
+            if (!response.ok) return null;
+            const state = (await response.json()).data;
+            return (state && state[0]) || null;
+        } catch (error) {
+            console.debug('Could not read the transport state:', error);
+            return null;
+        }
+    }
+
     prefix() {
         return '';
     }
