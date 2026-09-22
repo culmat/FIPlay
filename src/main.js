@@ -162,6 +162,20 @@ router.beforeEach((to, from, next) => {
     next();
 });
 
+/** Wait briefly for a speaker to be discovered, while none is known yet. */
+function waitForSpeaker(timeoutMs = 4000) {
+    if (Object.values(players).some(p => p instanceof BackendPlayer)) return Promise.resolve();
+    return new Promise(resolve => {
+        const started = Date.now();
+        const check = () => {
+            if (Object.values(players).some(p => p instanceof BackendPlayer)) resolve();
+            else if (Date.now() - started > timeoutMs) resolve();
+            else setTimeout(check, 100);
+        };
+        check();
+    });
+}
+
 async function playStation(stationName) {
     const waitForStation = () => new Promise((resolve) => {
         const checkStation = () => {
@@ -175,6 +189,12 @@ async function playStation(stationName) {
     });
 
     await waitForStation();
+
+    // Someone who configured speakers did not ask for the laptop. Discovery
+    // takes about a second, so a click made before it finishes would otherwise
+    // land on the browser player, which is the only one registered by then.
+    if (backendURL) await waitForSpeaker();
+
     // Prefer the stream list the metadata service supplies, but fall back to
     // building it from the station name. Radio France stopped returning
     // now.media.sources, and the URLs are derivable, so there is no reason for
@@ -236,7 +256,14 @@ router.afterEach((to, from) => {
     // Read the station from the route parameter. Slicing it out of fullPath
     // breaks as soon as the path carries a query string.
     const stationName = to.params.stationName;
-    if (to.fullPath != from.fullPath &&
+
+    // Opening or reloading a station URL is not a request to start playing.
+    // vue-router reports no matched route on the first navigation, which is
+    // how a page load is told apart from moving around inside the app.
+    const pageLoad = from.matched.length == 0;
+
+    if (!pageLoad &&
+        to.fullPath != from.fullPath &&
         to.query.play != 'false' &&
         stationName) {
         console.debug(`Now playing: ${stationName}`);
