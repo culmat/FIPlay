@@ -1,8 +1,11 @@
 
 <template>
   <v-card color="#333">
-    <div class="d-flex flex-wrap justify-space-between">
-      <div>
+    <div class="d-flex flex-wrap justify-space-between align-start">
+      <!-- flex-basis 0 so the text does not claim the whole row and push the
+           artwork onto a line of its own, which it did whenever a station name
+           or track title happened to be long. min-width 0 lets it wrap. -->
+      <div class="station-text">
         <v-card-title class="text-h5">
           {{ stationLabel }}
         </v-card-title>
@@ -19,13 +22,20 @@
         </v-card-actions>
       </div>
 
-      <v-avatar class="ma-3" rounded="0" size="200">
+      <v-avatar class="ma-3 flex-shrink-0" rounded="0" :size="avatarSize">
         <v-img :src="image ? image + '/200x200' : undefined"></v-img>
       </v-avatar>
     </div>
   </v-card>
 </template>
 <script setup>
+import { useDisplay } from 'vuetify'
+
+// Keep the artwork beside the text on a phone as well: 200px next to a column
+// of text does not fit on a narrow screen.
+const { smAndDown } = useDisplay()
+const avatarSize = computed(() => (smAndDown.value ? 120 : 200))
+
 defineProps({
     stationName: {
         type: String,
@@ -67,3 +77,10 @@ defineProps({
 
 });
 </script>
+
+<style scoped>
+.station-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+</style>
