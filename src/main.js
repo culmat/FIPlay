@@ -331,10 +331,12 @@ uiStore.$subscribe(() => {
 
         const urlChanged = now.stationURL !== was.stationURL;
 
-        if (now.playing && (urlChanged || !was.playing)) {
-            // playURL starts it as well, and is what a station change needs.
-            if (now.stationURL) player.playURL(now.stationURL);
-            else player.play();
+        if (now.playing && urlChanged && now.stationURL) {
+            // A different station: point the player at it, which starts it too.
+            player.playURL(now.stationURL);
+        } else if (now.playing && !was.playing) {
+            // Same stream as before, so this is a resume, not a new stream.
+            player.play();
         } else if (!now.playing && was.playing) {
             player.pause();
         }

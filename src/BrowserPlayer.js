@@ -7,10 +7,12 @@ export default class BrowserPlayer {
     }
 
     playURL(url) {
-        if (this.audio.src == url) {
-            return;
+        // Only reassign for a different stream: setting src again drops the
+        // connection and buffers from scratch. Play either way, because
+        // returning early here left a paused player paused.
+        if (this.audio.src !== url) {
+            this.audio.src = url;
         }
-        this.audio.src = url;
         this.play();
     }
 
