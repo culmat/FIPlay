@@ -132,6 +132,9 @@ input {
   transition: background var(--dur) var(--ease), transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 
+/* Press feedback. This owns the transform of every button, so a button must
+   never be positioned with one: the offset would be dropped on press and the
+   button would move out from under the pointer, swallowing the click. */
 .btn:active:not(:disabled) {
   transform: scale(0.94);
 }

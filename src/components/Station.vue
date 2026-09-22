@@ -89,6 +89,11 @@
       </div>
 
       <div class="view__controls chrome">
+        <span
+          class="view__controls-pad"
+          aria-hidden="true"
+        />
+
         <button
           class="btn btn--play"
           :aria-label="playing ? 'Pause' : 'Play'"
@@ -422,18 +427,27 @@ onBeforeUnmount(() => {
   color: var(--on-art-2);
 }
 
+/* Equal outer columns keep the play button on the centre line while the output
+   button sits beside it.
+   
+   The output button used to be taken out of flow and nudged across with a
+   transform instead. That looked the same but could not be clicked: the press
+   feedback in main.css also sets transform, it wins on specificity, so holding
+   the button down replaced the offset with the scale and the button jumped
+   clear of the pointer. The release then landed on the container and no click
+   ever reached the button, which read as the button shaking and doing nothing.
+   Positioning buttons with transform is the trap; this keeps it in flow. */
 .view__controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px auto 44px;
   align-items: center;
+  justify-content: center;
   gap: 18px;
   margin-top: 26px;
 }
 
-/* The output button rides beside the play button without pushing it off
-   centre, so the one big control stays where the thumb expects it. */
-.view__output {
-  position: absolute;
-  transform: translateX(84px);
+.view__controls-pad {
+  width: 44px;
 }
 
 .view__volume {
