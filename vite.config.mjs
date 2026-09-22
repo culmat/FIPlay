@@ -10,10 +10,26 @@ import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 // Utilities
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
+import { copyFileSync, existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+// Static hosts serve 404.html for paths they do not have. Making it the app
+// lets /station/<name> survive a reload on GitHub Pages, which offers no
+// other way to route unknown paths back to the page.
+const spaFallback = () => ({
+  name: 'spa-404-fallback',
+  apply: 'build',
+  closeBundle () {
+    const dir = fileURLToPath(new URL('./dist/FIPlay', import.meta.url))
+    const index = resolve(dir, 'index.html')
+    if (existsSync(index)) copyFileSync(index, resolve(dir, '404.html'))
+  },
+})
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    spaFallback(),
     VueRouter(),
     Layouts(),
     Vue({

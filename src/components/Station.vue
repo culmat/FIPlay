@@ -40,8 +40,10 @@ const props = defineProps({
 });
 
 const formatTime = (time) => {
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.round(time % 60);
+  // Flooring both parts: rounding the seconds turns 119.6 into "1:60".
+  const safe = Math.max(0, Math.floor(time));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
   return  `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
@@ -51,10 +53,18 @@ const calculateProgress = () => {
   const totalTime = now.endTime  - now.startTime ;
 
   const elapsedTime = (nowTime - now.startTime * 1000) / 1000
-  
+
+  if (!(totalTime > 0) || !Number.isFinite(elapsedTime)) {
+    return { percentage: 0, elapsedTime: formatTime(0), totalTime: formatTime(0) };
+  }
+
+  // A track can outlive the data describing it, because the service reports
+  // the next one a little late. Hold at the end rather than counting past it.
+  const played = Math.min(Math.max(elapsedTime, 0), totalTime);
+
   return {
-    percentage: (elapsedTime / totalTime) * 100,
-    elapsedTime: formatTime(elapsedTime),
+    percentage: (played / totalTime) * 100,
+    elapsedTime: formatTime(played),
     totalTime: formatTime(totalTime),
   }
 };
