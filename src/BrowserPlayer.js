@@ -19,6 +19,10 @@ export default class BrowserPlayer {
             return;
         }
         this.audio.play().catch(error => {
+            // Switching an output off while its stream is still opening rejects
+            // the play that is now obsolete. That is the outcome we asked for,
+            // not a failure worth shouting about.
+            if (error.name === 'AbortError') return;
             console.error('Error playing audio:', error);
         });
     }

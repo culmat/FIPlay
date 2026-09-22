@@ -217,12 +217,15 @@ async function playStation(stationName) {
     });
 
 
-    uiStore.activePlayer.stationLabel = stationStore.stations[stationName].stationLabel;
-    uiStore.activePlayer.stationURL = highestBitrateSource.url;
-    uiStore.activePlayer.playing = true;
-    uiStore.activePlayer.stationName = stationName;
-    console.debug("playing ", stationName, uiStore.activePlayer.stationURL, players[uiStore.playerName])
-    players[uiStore.playerName].playURL(uiStore.activePlayer.stationURL);
+    // The store puts it on every output that is switched on, and switches one
+    // on if none is. Commanding the hardware is left to the subscriber below,
+    // so there is one path from state to speaker however playback was started.
+    uiStore.playStation({
+        name: stationName,
+        label: stationStore.stations[stationName].stationLabel,
+        url: highestBitrateSource.url,
+    });
+    console.debug('playing', stationName, highestBitrateSource.url, uiStore.enabledPlayers.map(p => p.title));
 }
 
 /**
@@ -290,46 +293,52 @@ router.afterEach((to, from) => {
     }
 })
 
-function deepCompare(obj1, obj2, path = '', changes = {}) {
-    for (const key in obj1) {
-        if (Object.prototype.hasOwnProperty.call(obj1, key)) {
-            const newPath = path ? `${path}.${key}` : key;
-            if (typeof obj1[key] === 'object' && obj1[key] !== null && typeof obj2[key] === 'object' && obj2[key] !== null) {
-                deepCompare(obj1[key], obj2[key], newPath, changes);
-            } else if (obj1[key] !== obj2[key]) {
-                changes[newPath] = { from: obj1[key], to: obj2[key] };
-            }
-        }
+/**
+ * Send state changes to the players they belong to.
+ *
+ * Every output is watched, because several can be playing at once. What is
+ * compared is the small part of a player the hardware cares about, so an
+ * unrelated edit (a station label, a newly discovered zone) commands nothing.
+ */
+function snapshot() {
+    const out = {};
+    for (const player of uiStore.players) {
+        out[player.title] = { playing: player.playing, volume: player.volume, stationURL: player.stationURL };
     }
-    return changes;
+    return out;
 }
 
-var lastStateCopy
+var lastSnapshot = {};
 
 // Accept the current state as already applied. Without this, state copied from
 // a speaker looks like a fresh request and gets sent straight back to it.
 function syncStateSnapshot() {
-    lastStateCopy = { activePlayer: JSON.parse(JSON.stringify(uiStore.activePlayer)) };
+    lastSnapshot = snapshot();
 }
 
 uiStore.$subscribe(() => {
-    const stateCopy = {};
-    stateCopy.activePlayer = JSON.parse(JSON.stringify(uiStore.activePlayer));
-    if (!lastStateCopy) {
-        lastStateCopy = stateCopy;
-    } else {
-        var changes = deepCompare(lastStateCopy, stateCopy);
-        if (changes['activePlayer.volume']) {
-            players[uiStore.playerName].setVolume(changes['activePlayer.volume'].to);
-        } else if (changes['activePlayer.playing']) {
-            if (changes['activePlayer.playing'].to === true) {
-                players[uiStore.playerName].play();
-            } else if (changes['activePlayer.playing'].to === false) {
-                players[uiStore.playerName].pause();
-            } else {
-                uiStore.activePlayer.playing = lastStateCopy.activePlayer.playing;
-            }
+    const current = snapshot();
+
+    for (const [title, now] of Object.entries(current)) {
+        const was = lastSnapshot[title];
+        const player = players[title];
+
+        // A player registered since the last pass has nothing to compare
+        // against, and its state came from the hardware anyway.
+        if (!player || !was) continue;
+
+        if (now.volume !== was.volume) player.setVolume(now.volume);
+
+        const urlChanged = now.stationURL !== was.stationURL;
+
+        if (now.playing && (urlChanged || !was.playing)) {
+            // playURL starts it as well, and is what a station change needs.
+            if (now.stationURL) player.playURL(now.stationURL);
+            else player.play();
+        } else if (!now.playing && was.playing) {
+            player.pause();
         }
-        lastStateCopy = stateCopy;
     }
-})
+
+    lastSnapshot = current;
+});

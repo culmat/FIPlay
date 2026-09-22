@@ -44,13 +44,13 @@ const stationStore = useStationStore()
  */
 const showBar = computed(() => {
   const open = route.params.stationName
-  const playing = uiStore.activePlayer?.stationName
+  const playing = uiStore.station?.name
   return !open || (!!playing && playing !== open)
 })
 
 watchEffect(() => {
-  const active = uiStore.activePlayer
-  const now = active?.stationName ? stationStore.stations[active.stationName]?.now : null
+  const name = uiStore.station?.name
+  const now = name ? stationStore.stations[name]?.now : null
   const title = now?.firstLine?.title
   const artist = now?.secondLine?.title
   document.title = title ? `${title}${artist ? ' – ' + artist : ''} · FIPlay` : 'FIPlay'

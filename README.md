@@ -33,6 +33,11 @@ Without a `?backend=` parameter FIPlay still works: it falls back to an `<audio>
 plays through the browser. With one, every zone and room the backend reports is offered as an
 additional output in the output picker.
 
+Outputs are independent switches, not a single choice: the browser and any number of zones can
+play at once, each with its own volume, and the transport applies to all of them together. They
+are separate connections to a live stream, so two outputs start a second or two apart and stay
+that way. For synchronised rooms, group them into one Raumfeld zone and pick that.
+
 The audio stream itself always comes straight from Radio France; neither service proxies it.
 
 ## Where it runs

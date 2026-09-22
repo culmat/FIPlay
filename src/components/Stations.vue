@@ -26,7 +26,7 @@
         :key="station.stationName"
         :station="station"
         :active="station.stationName === activeName"
-        :playing="station.stationName === activeName && !!uiStore.activePlayer?.playing"
+        :playing="station.stationName === activeName && uiStore.anyPlaying"
       />
     </div>
   </div>
@@ -42,7 +42,7 @@ import { ui } from '@/ui'
 const stationStore = useStationStore()
 const uiStore = useUIStore()
 
-const activeName = computed(() => uiStore.activePlayer?.stationName || null)
+const activeName = computed(() => uiStore.station?.name || null)
 </script>
 
 <style scoped>

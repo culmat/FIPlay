@@ -107,13 +107,17 @@
 
         <button
           class="btn btn--icon btn--glass view__output"
-          aria-label="Choose output"
+          aria-label="Choose outputs"
           @click="ui.outputOpen = true"
         >
           <Icon
             :path="isSpeaker ? mdiSpeaker : mdiLaptop"
             :size="22"
           />
+          <span
+            v-if="outputCount > 1"
+            class="view__output-count"
+          >{{ outputCount }}</span>
         </button>
       </div>
 
@@ -123,7 +127,7 @@
       >
         <VolumeSlider
           tone="art"
-          :model-value="uiStore.activePlayer.volume"
+          :model-value="solo.volume"
           @update:model-value="setVolume"
         />
       </div>
@@ -180,10 +184,15 @@ const upNext = computed(() => {
   return nextArtist ? `${nextTitle} · ${nextArtist}` : nextTitle
 })
 
-const isCurrent = computed(() => uiStore.activePlayer?.stationName === props.stationName)
-const playing = computed(() => isCurrent.value && !!uiStore.activePlayer?.playing)
-const isSpeaker = computed(() => uiStore.activePlayer?.kind === 'speaker')
-const showVolume = computed(() => uiStore.activePlayer && !(uiStore.activePlayer.kind === 'browser' && isIOS))
+const isCurrent = computed(() => uiStore.station?.name === props.stationName)
+const playing = computed(() => isCurrent.value && uiStore.anyPlaying)
+const isSpeaker = computed(() => uiStore.onSpeaker)
+const outputCount = computed(() => uiStore.enabledPlayers.length)
+
+// One output on means one volume worth showing here; more than one belongs in
+// the sheet, which has a slider each.
+const solo = computed(() => uiStore.soloPlayer)
+const showVolume = computed(() => solo.value && !(solo.value.kind === 'browser' && isIOS))
 
 watch(art, () => { loaded.value = false })
 
@@ -199,11 +208,11 @@ function toggle () {
     playStation(props.stationName)
     return
   }
-  uiStore.activePlayer.playing = !uiStore.activePlayer.playing
+  uiStore.setPlaying(!uiStore.anyPlaying)
 }
 
 function setVolume (value) {
-  if (uiStore.activePlayer) uiStore.activePlayer.volume = value
+  if (solo.value) solo.value.volume = value
 }
 
 // --- progress ---------------------------------------------------------------
@@ -448,6 +457,25 @@ onBeforeUnmount(() => {
 
 .view__controls-pad {
   width: 44px;
+}
+
+.view__output {
+  position: relative;
+}
+
+.view__output-count {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 16px;
 }
 
 .view__volume {

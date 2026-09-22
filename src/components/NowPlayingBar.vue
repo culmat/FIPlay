@@ -41,20 +41,24 @@
       class="bar__volume"
     >
       <VolumeSlider
-        :model-value="uiStore.activePlayer.volume"
+        :model-value="solo.volume"
         @update:model-value="setVolume"
       />
     </div>
 
     <button
       class="btn btn--icon bar__output"
-      aria-label="Choose output"
+      aria-label="Choose outputs"
       @click="ui.outputOpen = true"
     >
       <Icon
         :path="isSpeaker ? mdiSpeaker : mdiLaptop"
         :size="22"
       />
+      <span
+        v-if="outputCount > 1"
+        class="bar__count"
+      >{{ outputCount }}</span>
     </button>
   </footer>
 </template>
@@ -71,28 +75,34 @@ const router = useRouter()
 const uiStore = useUIStore()
 const stationStore = useStationStore()
 
-const stationName = computed(() => uiStore.activePlayer?.stationName || '')
+const stationName = computed(() => uiStore.station?.name || '')
 const station = computed(() => (stationName.value ? stationStore.stations[stationName.value] : null))
 const art = computed(() => station.value?.now?.visuals?.card?.src || '')
-const title = computed(() => station.value?.now?.firstLine?.title || uiStore.activePlayer?.stationLabel || '')
-const playing = computed(() => !!uiStore.activePlayer?.playing)
-const isSpeaker = computed(() => uiStore.activePlayer?.kind === 'speaker')
+const title = computed(() => station.value?.now?.firstLine?.title || uiStore.station?.label || '')
+const playing = computed(() => uiStore.anyPlaying)
+const isSpeaker = computed(() => uiStore.onSpeaker)
+
+// How many outputs are on, so the button can say "and one more room".
+const outputCount = computed(() => uiStore.enabledPlayers.length)
 
 const subtitle = computed(() => {
-  if (!stationName.value) return uiStore.activePlayer?.title || ''
+  if (!stationName.value) return 'Nothing playing'
   const artist = station.value?.now?.secondLine?.title
-  const label = uiStore.activePlayer?.stationLabel || ''
+  const label = uiStore.station?.label || ''
   return artist ? `${artist} · ${label}` : label
 })
 
-const showVolume = computed(() => uiStore.activePlayer && !(uiStore.activePlayer.kind === 'browser' && isIOS))
+// With two outputs on there is no single volume to show; the sheet has one
+// slider per output for that case.
+const solo = computed(() => uiStore.soloPlayer)
+const showVolume = computed(() => solo.value && !(solo.value.kind === 'browser' && isIOS))
 
 function toggle () {
-  if (uiStore.activePlayer) uiStore.activePlayer.playing = !uiStore.activePlayer.playing
+  uiStore.setPlaying(!uiStore.anyPlaying)
 }
 
 function setVolume (value) {
-  if (uiStore.activePlayer) uiStore.activePlayer.volume = value
+  if (solo.value) solo.value.volume = value
 }
 
 // play=false: opening the page of something already playing must not be read
@@ -172,6 +182,27 @@ function openStation () {
 .bar__sub {
   font-size: 0.75rem;
   color: var(--text-3);
+}
+
+.bar__output {
+  position: relative;
+}
+
+/* Two rooms on at once is worth saying out loud on the button itself. */
+.bar__count {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
 }
 
 /* Wide windows have room for the volume in the bar; phones reach it through

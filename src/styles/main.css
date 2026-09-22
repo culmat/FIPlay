@@ -241,6 +241,36 @@ input {
   white-space: nowrap;
 }
 
+/* --- switch -------------------------------------------------------------- */
+
+.switch {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 24px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  transition: background var(--dur) var(--ease);
+}
+
+.switch__knob {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur) var(--ease);
+}
+
+.switch--on {
+  background: var(--accent);
+}
+
+.switch--on .switch__knob {
+  transform: translateX(16px);
+}
+
 /* --- loading ------------------------------------------------------------ */
 
 .shimmer {

@@ -2,7 +2,7 @@
   <dialog
     ref="el"
     class="sheet sheet--bottom sheet--anchored"
-    aria-label="Playback output"
+    aria-label="Playback outputs"
     @close="ui.outputOpen = false"
     @click.self="close"
   >
@@ -24,11 +24,13 @@
         >
           <button
             class="out__item"
-            :class="{ 'out__item--on': player.title === uiStore.playerName }"
-            @click="select(player)"
+            role="switch"
+            :aria-checked="player.enabled"
+            @click="uiStore.setEnabled(player.title, !player.enabled)"
           >
             <Icon
               class="out__kind"
+              :class="{ 'out__kind--on': player.enabled }"
               :path="player.kind === 'speaker' ? mdiSpeaker : mdiLaptop"
               :size="22"
             />
@@ -36,13 +38,22 @@
               <span class="out__name truncate">{{ player.title }}</span>
               <span class="out__state truncate">{{ stateOf(player) }}</span>
             </span>
-            <Icon
-              v-if="player.title === uiStore.playerName"
-              class="out__check"
-              :path="mdiCheck"
-              :size="20"
-            />
+            <span
+              class="switch"
+              :class="{ 'switch--on': player.enabled }"
+            ><span class="switch__knob" /></span>
           </button>
+
+          <!-- Each output keeps its own volume, so each gets its own slider. -->
+          <div
+            v-if="player.enabled && !volumeLocked(player)"
+            class="out__volume"
+          >
+            <VolumeSlider
+              :model-value="player.volume"
+              @update:model-value="value => player.volume = value"
+            />
+          </div>
         </li>
       </ul>
 
@@ -52,16 +63,6 @@
       >
         Looking for players…
       </p>
-
-      <div
-        v-if="showVolume"
-        class="out__volume"
-      >
-        <VolumeSlider
-          :model-value="uiStore.activePlayer.volume"
-          @update:model-value="setVolume"
-        />
-      </div>
 
       <div class="out__footer">
         <button
@@ -76,7 +77,7 @@
 </template>
 
 <script setup>
-import { mdiCheck, mdiLaptop, mdiSpeaker } from '@mdi/js'
+import { mdiLaptop, mdiSpeaker } from '@mdi/js'
 
 import { isIOS } from '@/platform'
 import { useUIStore } from '@/stores/uiStore'
@@ -87,7 +88,7 @@ const el = ref(null)
 
 // iOS gives the hardware buttons sole control of an <audio> element's volume,
 // so a slider for the browser player there would move and do nothing.
-const showVolume = computed(() => uiStore.activePlayer && !(uiStore.activePlayer.kind === 'browser' && isIOS))
+const volumeLocked = player => player.kind === 'browser' && isIOS
 
 // Sync rather than toggle: the flag and the element can drift apart (a hot
 // reload swaps the element, a browser closes a dialog on its own), and a
@@ -105,18 +106,10 @@ function close () {
   ui.outputOpen = false
 }
 
-function select (player) {
-  uiStore.playerName = player.title
-  close()
-}
-
-function setVolume (value) {
-  if (uiStore.activePlayer) uiStore.activePlayer.volume = value
-}
-
 function stateOf (player) {
-  if (!player.stationLabel) return 'Idle'
-  return `${player.playing ? 'Playing' : 'Paused'} ${player.stationLabel}`
+  if (!player.enabled) return 'Off'
+  if (player.playing) return player.stationLabel ? `Playing ${player.stationLabel}` : 'Playing'
+  return player.stationLabel ? `Paused ${player.stationLabel}` : 'Ready'
 }
 
 function openAbout () {
@@ -166,18 +159,14 @@ function openAbout () {
   outline: none;
 }
 
-.out__item--on {
-  background: var(--accent-soft);
-}
-
-.out__item--on .out__kind,
-.out__check {
-  color: var(--accent);
-}
-
 .out__kind {
   flex: 0 0 auto;
   color: var(--text-3);
+  transition: color var(--dur) var(--ease);
+}
+
+.out__kind--on {
+  color: var(--accent);
 }
 
 .out__text {
@@ -197,21 +186,21 @@ function openAbout () {
   color: var(--text-3);
 }
 
+.out__volume {
+  padding: 2px 16px 12px 46px;
+}
+
 .out__empty {
   padding: 4px 20px 12px;
   color: var(--text-3);
   font-size: 0.875rem;
 }
 
-.out__volume {
-  padding: 12px 20px 4px;
-  margin-top: 4px;
-  border-top: 1px solid var(--glass-border);
-}
-
 .out__footer {
   display: flex;
   justify-content: center;
   padding: 4px 8px 0;
+  border-top: 1px solid var(--glass-border);
+  margin-top: 4px;
 }
 </style>

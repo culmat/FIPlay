@@ -14,16 +14,12 @@ export function bindMediaSession (uiStore, stationStore, browserPlayerName) {
 
   const ms = navigator.mediaSession
 
-  ms.setActionHandler('play', () => {
-    if (uiStore.activePlayer) uiStore.activePlayer.playing = true
-  })
-  ms.setActionHandler('pause', () => {
-    if (uiStore.activePlayer) uiStore.activePlayer.playing = false
-  })
+  ms.setActionHandler('play', () => uiStore.setPlaying(true))
+  ms.setActionHandler('pause', () => uiStore.setPlaying(false))
 
   watchEffect(() => {
-    const player = uiStore.activePlayer
-    const mine = player && player.title === browserPlayerName && player.stationName
+    const player = uiStore.players.find(p => p.title === browserPlayerName)
+    const mine = player?.enabled && player.stationName
 
     if (!mine) {
       ms.metadata = null
