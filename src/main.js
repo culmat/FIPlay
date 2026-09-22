@@ -79,11 +79,15 @@ addPlayer(new BrowserPlayer(), `${browser.getBrowserName()} / ${browser.getOSNam
 
 
 for (const [stationName, stationLabel] of Object.entries(stations)) {
+    // Same shape the metadata service returns, so the components receive the
+    // types they declare while the first response is still on its way. The
+    // placeholder used bare strings, which made every field read as undefined
+    // and produced a prop type warning per station on every load.
     stationStore.updateStation({
         stationName, stationLabel, now: {
-            firstLine: '',
-            secondLine: '',
-            visuals: { card: '' },
+            firstLine: { title: '' },
+            secondLine: { title: '' },
+            visuals: { card: { src: '' } },
             media: { sources: [] }
         }
     });
