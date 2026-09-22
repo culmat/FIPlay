@@ -23,8 +23,8 @@ export default class Backend {
         if (!Backend.updated) {
             Backend.updated = true;
             try {
-                const response = await fetch(this.backendURLroot + 'update');
-                console.log('Updated');
+                await fetch(this.backendURLroot + 'update');
+                console.debug('Backend rescan finished');
             } catch (error) {
                 console.error('Error :', error);
                 throw error;

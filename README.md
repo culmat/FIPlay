@@ -3,8 +3,12 @@
 A small web player for [FIP](https://www.radiofrance.fr/fip) radio that can play a station
 either in your browser or on [Teufel Raumfeld](https://raumfeld.com) speakers on your network.
 
-Vue 3, Vuetify 3 and Vite. No build-time configuration: which speakers you control is decided
-at runtime by a URL parameter.
+Vue 3 and Vite, with no UI framework: the interface is a handful of components over CSS
+custom properties, and the icons are inline SVG paths from `@mdi/js`. No build-time
+configuration: which speakers you control is decided at runtime by a URL parameter.
+
+It installs to a phone's home screen and runs full screen, with the artwork of the current
+track as the backdrop.
 
 ## How it fits together
 
@@ -27,7 +31,7 @@ thing that knows about both.
 
 Without a `?backend=` parameter FIPlay still works: it falls back to an `<audio>` element and
 plays through the browser. With one, every zone and room the backend reports is offered as an
-additional player in the footer.
+additional output in the output picker.
 
 The audio stream itself always comes straight from Radio France; neither service proxies it.
 
@@ -64,6 +68,7 @@ password once, interactively, and installs your SSH key instead.
 | `bun dev` | Vite dev server on port 3000 |
 | `bun run build` | Production build into `dist/FIPlay` |
 | `bun run lint` | ESLint with `--fix` |
+| `bun run icons` | Re-render `public/icons/*.png` from the SVG source |
 | `bun browse` | Shared Chromium with remote debugging, for you and coding agents |
 | `bun run deploy` | Build and rsync `dist/FIPlay` to the NAS, then verify what is served |
 | `bun run nas:status` | Read-only check of deployment, backend container, and public services |
@@ -89,6 +94,26 @@ install is needed. Run `bunx playwright install chromium` once.
 Coding agents attach through `.mcp.json`, which points the Playwright MCP server at the same
 port. Start the browser first; the MCP server attaches to it and does not launch its own.
 Screenshots and traces belong in `.playwright-mcp/` (gitignored).
+
+### Installing it on a phone
+
+The build ships a web app manifest, maskable icons and the iOS meta tags, so Safari's
+*Add to Home Screen* and Chrome's install prompt give a full-screen app with a dark splash
+screen and no browser chrome. The layout keeps its controls clear of the notch and the home
+indicator through `env(safe-area-inset-*)`, which needs the `viewport-fit=cover` in
+`index.html` to resolve to anything.
+
+There is deliberately no service worker. A radio needs the network to play anything, so an
+offline shell would buy nothing and a stale precache is a good way to keep serving an old
+build after a deploy.
+
+`bun run icons` regenerates the PNGs from one SVG defined in `scripts/icons.ts`, rendering
+them with the Chromium that `bun browse` already needs. The PNGs are committed, so a home
+screen icon never depends on anyone's toolchain.
+
+An installed app launches at the manifest's `start_url`, which carries no query string and so
+would come up without speakers. `bun run deploy` therefore stamps `?backend=` from your `.env`
+into the manifest it uploads; the GitHub Pages build has no backend and stays as it is.
 
 ### `bun run deploy`
 
@@ -116,4 +141,4 @@ your speaker backend, so it is deliberately a separate command from `deploy`.
 - **The speakers can take a minute to appear after a cold start.** On load the app calls the
   backend's `/update`, which rescans the Raumfeld network and can take 45 seconds, followed by
   a first `/zones` that can take another 15. Later calls are fast. Until that chain finishes
-  the footer offers the browser player only.
+  the output picker offers the browser player only.

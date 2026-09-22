@@ -9,10 +9,17 @@
   RewriteRule . /FIPlay/index.html [L]
 </IfModule>
 
+# Some servers do not know this extension yet, and a manifest served as
+# text/plain is ignored, which costs the install prompt with no error anywhere.
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
 # The asset filenames carry a content hash, so they can be cached forever. The
 # page that points at them must not be, or a deploy keeps serving the old one.
+# The manifest goes with the page: it names those assets and the start URL.
 <IfModule mod_headers.c>
-  <FilesMatch "\.(html|json)$">
+  <FilesMatch "\.(html|json|webmanifest)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
   <FilesMatch "-[A-Za-z0-9_-]{8,}\.(js|css|woff2?|ttf|eot)$">

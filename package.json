@@ -8,6 +8,7 @@
     "build": "bunx --bun vite build",
     "preview": "bunx --bun vite preview",
     "lint": "eslint . --fix",
+    "icons": "bun scripts/icons.ts",
     "browse": "bun scripts/browse.ts",
     "deploy": "bun scripts/deploy.ts",
     "backend": "bun scripts/backend.ts",
@@ -16,11 +17,9 @@
     "nas:ssh": "bun scripts/nas-ssh.ts"
   },
   "dependencies": {
-    "@mdi/font": "7.4.47",
+    "@mdi/js": "^7.4.47",
     "bowser": "^2.11.0",
-    "roboto-fontface": "^0.10.0",
-    "vue": "^3.5.17",
-    "vuetify": "^3.9.0"
+    "vue": "^3.5.17"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
@@ -35,15 +34,10 @@
     "eslint-plugin-vue": "^10.3.0",
     "globals": "^17.12.0",
     "pinia": "^3.0.3",
-    "sass": "1.89.2",
-    "sass-embedded": "^1.89.2",
     "unplugin-auto-import": "^19.3.0",
-    "unplugin-fonts": "^1.3.1",
     "unplugin-vue-components": "^28.8.0",
     "unplugin-vue-router": "^0.14.0",
     "vite": "^7.0.4",
-    "vite-plugin-vue-layouts": "^0.11.0",
-    "vite-plugin-vuetify": "^2.1.1",
     "vue-router": "^4.5.1"
   }
 }

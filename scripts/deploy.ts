@@ -60,6 +60,21 @@ const version: VersionInfo = { commit: git.commit, short: git.short, branch: git
 await Bun.write(resolve(DIST_DIR, 'version.json'), `${JSON.stringify(version, null, 2)}\n`);
 ok(`built dist/FIPlay (version.json -> ${git.short})`);
 
+// An installed copy launches at the manifest's start_url, which carries no
+// query string, so it would come up without speakers. The backend URL is
+// specific to this network, so it is stamped in at deploy time rather than
+// committed into the manifest.
+const manifestPath = resolve(DIST_DIR, 'manifest.webmanifest');
+const backendURL = backendCfg().url;
+if (backendURL && existsSync(manifestPath)) {
+  const manifest = JSON.parse(await Bun.file(manifestPath).text());
+  manifest.start_url = `/FIPlay/?backend=${encodeURIComponent(backendURL)}`;
+  await Bun.write(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  ok(`manifest start_url -> ${manifest.start_url}`);
+} else if (!backendURL) {
+  info(`${ENV.BACKEND_URL} not set: installed app will start without speakers`);
+}
+
 // --- Phase 3 -----------------------------------------------------------------
 phase(`Phase 3: Sync${DRY_RUN ? ' (dry run)' : ''}`);
 const rsyncArgs = [

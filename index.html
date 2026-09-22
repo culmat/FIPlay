@@ -2,9 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FIPlay</title>
+
+    <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve to
+         anything other than zero, so the layout can reach the screen edges
+         and still keep its controls clear of the notch and home indicator. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0b0f">
+    <meta name="description" content="FIP radio in your browser or on your Raumfeld speakers.">
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FIPlay">
+
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+    <!-- Paint the background before any CSS loads, so the launch from a home
+         screen goes splash -> app without a white frame in between. -->
+    <style>html{background:#0b0b0f}</style>
   </head>
   <body>
     <div id="app"></div>

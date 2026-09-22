@@ -2,6 +2,8 @@ import js from '@eslint/js'
 import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
 
+import autoImports from './.eslintrc-auto-import.json' with { type: 'json' }
+
 export default [
   {
     name: 'app/files-to-lint',
@@ -11,9 +13,16 @@ export default [
   {
     // The app runs in a browser, so window, document, fetch, localStorage and
     // the rest are defined. Without this every use of them is a no-undef error.
+    //
+    // unplugin-auto-import writes .eslintrc-auto-import.json on every dev run
+    // and build; it lists what the plugin injects (ref, computed, useRoute, …)
+    // so those do not read as undefined either.
     name: 'app/browser-globals',
     languageOptions: {
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        ...autoImports.globals,
+      },
     },
   },
 

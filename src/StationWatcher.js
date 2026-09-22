@@ -35,6 +35,27 @@ export default class StationWatcher {
         const endsIn = endTime ? endTime * 1000 - Date.now() + 2000 : suggested;
         return Math.min(Math.max(Math.min(suggested, endsIn), 10000), 120000);
     }
+    /**
+     * Say so, once, when no metadata is coming.
+     *
+     * Without this the station keeps the empty placeholder it was seeded with,
+     * which is indistinguishable from one whose first response is still on its
+     * way, so its card would shimmer as a skeleton forever. The station is
+     * still playable: the stream URL is derived from its name.
+     */
+    giveUp() {
+        this.updateStation({
+            stationName: this.stationName,
+            stationLabel: this.stationLabel,
+            unavailable: true,
+            now: {
+                firstLine: { title: '' },
+                secondLine: { title: '' },
+                visuals: { card: { src: '' } },
+                media: { sources: [] }
+            }
+        });
+    }
     getStationInfo() {
         fetch(METADATA_URL + '/api/metadata/' + this.stationName)
             .then(response => response.json())
@@ -49,6 +70,7 @@ export default class StationWatcher {
                     this.scheduleNextRefresh(777 + this.errorCount * 222);
                 } else {
                     console.error('Too many errors fetching metadata for ' + this.stationName + ':', error);
+                    this.giveUp();
                 }
             });
     }

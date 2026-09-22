@@ -1,3 +1,6 @@
+// Styles
+import '@/styles/main.css'
+
 // Plugins
 import { registerPlugins } from '@/plugins'
 
@@ -15,12 +18,16 @@ import ZoneBackend from './ZoneBackend'
 import Bowser from "bowser";
 import BackendPlayer from './BackendPlayer';
 import BrowserPlayer from './BrowserPlayer';
-import { VToolbarItems } from 'vuetify/components/VToolbar';
+import { bindMediaSession } from './mediaSession';
 const browser = Bowser.getParser(window.navigator.userAgent);
 
 const app = createApp(App)
 
 registerPlugins(app)
+
+// The play buttons in the views need this, and importing main.js from a
+// component would be circular. Provide is the smallest way in.
+app.provide('playStation', playStation)
 
 app.mount('#app')
 
@@ -75,7 +82,11 @@ function addPlayer(player, name, volume = 100, kind = 'browser') {
     }
 }
 
-addPlayer(new BrowserPlayer(), `${browser.getBrowserName()} / ${browser.getOSName()}`);
+const browserPlayerName = `${browser.getBrowserName()} / ${browser.getOSName()}`;
+addPlayer(new BrowserPlayer(), browserPlayerName);
+
+// Lock-screen artwork and play/pause for the browser player.
+bindMediaSession(uiStore, stationStore, browserPlayerName);
 
 
 for (const [stationName, stationLabel] of Object.entries(stations)) {
@@ -208,7 +219,7 @@ async function playStation(stationName) {
 
     uiStore.activePlayer.stationLabel = stationStore.stations[stationName].stationLabel;
     uiStore.activePlayer.stationURL = highestBitrateSource.url;
-    uiStore.activePlayer.playing = "true";
+    uiStore.activePlayer.playing = true;
     uiStore.activePlayer.stationName = stationName;
     console.debug("playing ", stationName, uiStore.activePlayer.stationURL, players[uiStore.playerName])
     players[uiStore.playerName].playURL(uiStore.activePlayer.stationURL);
@@ -235,7 +246,7 @@ async function adoptPlayback(backend, udn, playerName) {
         stationName,
         stationLabel: stations[stationName],
         stationURL: url,
-        playing: state === 'PLAYING' ? 'true' : 'false',
+        playing: state === 'PLAYING',
     });
     syncStateSnapshot();
     console.debug(`${playerName} is already on ${stationName} (${state})`);
@@ -281,7 +292,7 @@ router.afterEach((to, from) => {
 
 function deepCompare(obj1, obj2, path = '', changes = {}) {
     for (const key in obj1) {
-        if (obj1.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(obj1, key)) {
             const newPath = path ? `${path}.${key}` : key;
             if (typeof obj1[key] === 'object' && obj1[key] !== null && typeof obj2[key] === 'object' && obj2[key] !== null) {
                 deepCompare(obj1[key], obj2[key], newPath, changes);
@@ -301,7 +312,7 @@ function syncStateSnapshot() {
     lastStateCopy = { activePlayer: JSON.parse(JSON.stringify(uiStore.activePlayer)) };
 }
 
-uiStore.$subscribe((mutation, state) => {
+uiStore.$subscribe(() => {
     const stateCopy = {};
     stateCopy.activePlayer = JSON.parse(JSON.stringify(uiStore.activePlayer));
     if (!lastStateCopy) {
@@ -311,9 +322,9 @@ uiStore.$subscribe((mutation, state) => {
         if (changes['activePlayer.volume']) {
             players[uiStore.playerName].setVolume(changes['activePlayer.volume'].to);
         } else if (changes['activePlayer.playing']) {
-            if (changes['activePlayer.playing'].to == "true") {
+            if (changes['activePlayer.playing'].to === true) {
                 players[uiStore.playerName].play();
-            } else if (changes['activePlayer.playing'].to == "false") {
+            } else if (changes['activePlayer.playing'].to === false) {
                 players[uiStore.playerName].pause();
             } else {
                 uiStore.activePlayer.playing = lastStateCopy.activePlayer.playing;

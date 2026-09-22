@@ -1,9 +1,7 @@
 <template>
   <Station 
-    :stationName="$route.params.stationName" 
-
+    :station-name="$route.params.stationName"
   />
-  
 </template>
 
 <script setup>
