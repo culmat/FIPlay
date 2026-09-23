@@ -73,6 +73,55 @@
         />
       </a>
 
+      <div class="about__share">
+        <button
+          class="about__link about__share-toggle"
+          @click="toggleQr"
+        >
+          <Icon
+            :path="mdiQrcode"
+            :size="20"
+          />
+          <span>{{ showQr ? 'Hide QR code' : 'Share with a QR code' }}</span>
+        </button>
+
+        <div
+          v-if="showQr"
+          class="about__qr"
+        >
+          <!-- Generated locally from our own address; nothing foreign goes in. -->
+          <!-- eslint-disable vue/no-v-html -->
+          <div
+            v-if="qrSvg"
+            class="about__qr-code"
+            v-html="qrSvg"
+          />
+          <!-- eslint-enable vue/no-v-html -->
+          <div
+            v-else
+            class="about__qr-code about__qr-code--loading"
+          />
+          <p class="about__qr-url">
+            {{ shareUrl }}
+          </p>
+          <div class="about__qr-actions">
+            <button
+              class="btn btn--text"
+              @click="copyLink"
+            >
+              {{ copied ? 'Copied' : 'Copy link' }}
+            </button>
+            <button
+              v-if="canShare"
+              class="btn btn--text"
+              @click="shareLink"
+            >
+              Share…
+            </button>
+          </div>
+        </div>
+      </div>
+
       <p
         v-if="version"
         class="about__version"
@@ -84,12 +133,61 @@
 </template>
 
 <script setup>
-import { mdiClose, mdiGithub, mdiOpenInNew, mdiRadio, mdiScaleBalance } from '@mdi/js'
+import { mdiClose, mdiGithub, mdiOpenInNew, mdiQrcode, mdiRadio, mdiScaleBalance } from '@mdi/js'
 
 import { ui } from '@/ui'
 
 const el = ref(null)
 const version = ref('')
+const route = useRoute()
+
+// The address worth handing to a friend on the same network: this deployment's
+// entry point, with the speakers if this copy has them. Not the station page.
+const shareUrl = computed(() => {
+  // The base is configured without a trailing slash; the app's scope has one.
+  const url = new URL(import.meta.env.BASE_URL.replace(/\/?$/, '/'), location.origin)
+  if (route.query.backend) url.searchParams.set('backend', String(route.query.backend))
+  return url.toString()
+})
+
+const showQr = ref(false)
+const qrSvg = ref('')
+const copied = ref(false)
+const canShare = typeof navigator.share === 'function'
+
+// The encoder is loaded only when someone asks for a code; the app itself
+// never needs it. Dark modules on a white card: an inverted code scans worse.
+async function toggleQr () {
+  showQr.value = !showQr.value
+  if (!showQr.value || qrSvg.value) return
+  const { default: QRCode } = await import('qrcode')
+  qrSvg.value = await QRCode.toString(shareUrl.value, {
+    type: 'svg',
+    margin: 1,
+    errorCorrectionLevel: 'M',
+    color: { dark: '#0b0b0fff', light: '#ffffffff' },
+  })
+}
+
+watch(shareUrl, () => { qrSvg.value = '' })
+
+async function copyLink () {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 1800)
+  } catch {
+    copied.value = false
+  }
+}
+
+async function shareLink () {
+  try {
+    await navigator.share({ title: 'FIPlay', text: 'FIP radio, on our speakers', url: shareUrl.value })
+  } catch {
+    // Cancelled, or not permitted: nothing to report.
+  }
+}
 
 // Sync rather than toggle, for the same reason as the output sheet.
 async function sync () {
@@ -180,6 +278,54 @@ async function readVersion () {
 
 .about__ext {
   color: var(--text-3);
+}
+
+.about__share {
+  margin-top: 4px;
+}
+
+.about__share-toggle {
+  width: 100%;
+  text-align: left;
+}
+
+.about__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 4px;
+}
+
+.about__qr-code {
+  width: 200px;
+  height: 200px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.about__qr-code :deep(svg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.about__qr-code--loading {
+  background: var(--surface-2);
+}
+
+.about__qr-url {
+  max-width: 100%;
+  font-size: 0.75rem;
+  color: var(--text-3);
+  word-break: break-all;
+  text-align: center;
+}
+
+.about__qr-actions {
+  display: flex;
+  gap: 4px;
 }
 
 .about__version {

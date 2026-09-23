@@ -150,6 +150,7 @@ function discoverPlayers() {
 
 function startDiscovery(url) {
     backends.push(new ZoneBackend(url), new RoomBackend(url));
+    startSpeakerSync();
 
     // Ask the backend to rescan the network, but do not wait for it. It is by
     // far the slowest call, and the device list it refreshes is already kept
@@ -336,6 +337,10 @@ function syncStateSnapshot() {
  */
 function send(title, command) {
     const player = players[title];
+    // Leave this speaker alone for a moment: the state we just asked for is
+    // still on its way to the device, and reading the device now would only
+    // report the old state and undo the request in the UI.
+    quietUntil[title] = Date.now() + QUIET_MS;
     Promise.resolve()
         .then(command)
         .catch(async firstError => {
@@ -356,6 +361,72 @@ function send(title, command) {
                 syncStateSnapshot();
             }
         });
+}
+
+/**
+ * Keep every open copy of FIPlay looking at the same speakers.
+ *
+ * The speaker is the only shared state there is: a phone in the kitchen, the
+ * laptop and the Raumfeld app all talk to it, and none of them to each other.
+ * So every few seconds, while the page is visible, ask each speaker what it is
+ * playing and whether it is playing, and adopt the answer. A speaker this copy
+ * has just commanded is skipped for a moment, or the read would race the
+ * command. When the app's station changes under a station page, the page
+ * follows, the way arriving while the speakers play already does.
+ */
+const SYNC_MS = 5000;
+const QUIET_MS = 8000;
+const quietUntil = {};
+let syncing = false;
+
+async function syncSpeakers() {
+    if (syncing || document.hidden) return;
+    syncing = true;
+    try {
+        for (const [title, player] of Object.entries(players)) {
+            if (!(player instanceof BackendPlayer)) continue;
+            if ((quietUntil[title] || 0) > Date.now()) continue;
+
+            const [url, state, rawVolume] = await Promise.all([
+                player.backend.currentURL(player.udn),
+                player.backend.transportState(player.udn),
+                player.backend.getVolume(player.udn).catch(() => undefined),
+            ]);
+            if (state === null) continue; // unreachable right now; keep what we have
+
+            const stationName = stationForStreamURL(url);
+            const volume = Number(Array.isArray(rawVolume) ? rawVolume[0] : rawVolume);
+            const before = uiStore.station?.name;
+            const changed = uiStore.syncFromDevice(title, {
+                stationName,
+                stationLabel: stationName ? stations[stationName] : null,
+                stationURL: stationName ? url : null,
+                // TRANSITIONING is the few seconds a stream takes to start; showing
+                // that as paused would make the button blink after every change.
+                // Playing something that is not FIP counts as not playing FIP.
+                playing: (state === 'PLAYING' || state === 'TRANSITIONING') && !!stationName,
+                volume: Number.isFinite(volume) ? volume : undefined,
+            });
+            if (!changed) continue;
+
+            // Observed, not requested: must not be echoed back as a command.
+            syncStateSnapshot();
+
+            const after = uiStore.station?.name;
+            const route = router.currentRoute.value;
+            if (after && after !== before && route.params.stationName === before) {
+                router.replace({ path: '/station/' + after, query: { ...route.query, play: 'false' } });
+            }
+        }
+    } finally {
+        syncing = false;
+    }
+}
+
+function startSpeakerSync() {
+    setInterval(syncSpeakers, SYNC_MS);
+    // Coming back to the tab is exactly when the picture is most likely stale.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) syncSpeakers(); });
 }
 
 uiStore.$subscribe(() => {

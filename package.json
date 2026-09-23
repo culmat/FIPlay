@@ -20,6 +20,7 @@
   "dependencies": {
     "@mdi/js": "^7.4.47",
     "bowser": "^2.11.0",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.17"
   },
   "devDependencies": {

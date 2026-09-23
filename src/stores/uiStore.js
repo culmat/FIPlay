@@ -145,5 +145,46 @@ export const useUIStore = defineStore('UI', {
 
       if (!this.station) this.station = { name: stationName, label: stationLabel, url: stationURL }
     },
+
+    /**
+     * Take what a speaker reports as the truth about it.
+     *
+     * Another phone, the Raumfeld app or a button on the device can change
+     * what a speaker does; the speaker is the only place that knows. When an
+     * output that is on moves to another station, the app follows, so every
+     * open copy of FIPlay ends up showing the same thing. Returns whether
+     * anything changed, so the caller can resync its snapshot and not send the
+     * observation back to the device as a command.
+     */
+    syncFromDevice (name, { stationName, stationLabel, stationURL, playing, volume }) {
+      const player = this.players.find(p => p.title === name)
+      if (!player) return false
+      let changed = false
+
+      if (stationName && player.stationName !== stationName) {
+        player.stationName = stationName
+        player.stationLabel = stationLabel
+        player.stationURL = stationURL
+        changed = true
+      }
+      if (player.playing !== playing) {
+        player.playing = playing
+        changed = true
+      }
+      if (typeof volume === 'number' && player.volume !== volume) {
+        player.volume = volume
+        changed = true
+      }
+      // A speaker someone started is part of the picture, whoever started it.
+      if (playing && !player.enabled) {
+        player.enabled = true
+        changed = true
+      }
+      if (player.enabled && stationName && this.station?.name !== stationName) {
+        this.station = { name: stationName, label: stationLabel, url: stationURL }
+        changed = true
+      }
+      return changed
+    },
   },
 })

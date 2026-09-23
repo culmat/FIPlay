@@ -40,6 +40,11 @@ that way. For synchronised rooms, group them into one Raumfeld zone and pick tha
 
 The audio stream itself always comes straight from Radio France; neither service proxies it.
 
+Every open copy of FIPlay, on a phone, a laptop or the Raumfeld app, shows the same thing,
+because the speakers are the only shared state there is: each copy asks them every few
+seconds what they are playing and follows. The About dialog offers a QR code for the address
+of the copy you are looking at, speakers included, to hand to a friend on the same network.
+
 ## Where it runs
 
 - **GitHub Pages** at [culmat.github.io/FIPlay](https://culmat.github.io/FIPlay/), built and
