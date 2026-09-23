@@ -14,7 +14,7 @@ needed for one local DNS record.
   on the LAN address only: `-p <nas-lan-ip>:53:53/tcp -p <nas-lan-ip>:53:53/udp`.
 - **Pi-hole does not know the router's device names.** Once clients ask Pi-hole, `<nas>` and
   `<nas>.fritz.box` stop resolving, and with them every tool that uses the bare name, including
-  an app whose metadata service was configured as `http://nas:8082`. Fix: forward the router's
+  an app whose metadata service was configured as `http://<nas>:8082`. Fix: forward the router's
   zone and reverse lookups to the router, and forward unqualified names as well:
 
   ```
