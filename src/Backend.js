@@ -32,6 +32,22 @@ export default class Backend {
         }
         return this;
     }
+    /**
+     * Ask the backend to look for the speakers again, and give it a moment.
+     *
+     * Raumfeld devices restart their control service when their network
+     * connection is renegotiated, and come back on a different port. The
+     * backend then keeps a dead address until it rescans, and every command
+     * fails with a 500. Unlike update(), this runs every time it is asked.
+     */
+    async rescan() {
+        try {
+            await fetch(this.backendURLroot + 'update');
+        } catch (error) {
+            console.debug('Backend rescan request failed:', error);
+        }
+        await new Promise(resolve => setTimeout(resolve, 3000));
+    }
     async getVolume(udn) {
         try {
             const response = await fetch(this.backendURL + udn + '/volume');

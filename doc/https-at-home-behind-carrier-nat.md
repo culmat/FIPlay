@@ -65,7 +65,16 @@ phone ──HTTPS:4433──▶ Apache vhost on the NAS
 - **Certificate renewal must run on the NAS on a schedule.** A 90-day certificate with a
   manual renewal is a scheduled outage.
 
-## Two traps met on the way
+## Three traps met on the way
+
+- **Applying router settings can restart devices you did not touch.** Minutes after the
+  FRITZ!Box change went live, the Raumfeld speaker behind a mesh repeater restarted its
+  control service three times in fourteen minutes, each time on a new port, and the speaker
+  backend kept a dead address in between. Nothing was wrong with DNS, the proxy or the app;
+  the speaker had not even switched resolver yet. It settled on its own. Expect a quarter of
+  an hour of flakiness from anything on the mesh after a router-side change, and make the
+  app rescan and retry rather than trusting a cached device address.
+
 
 - **macOS caches negative DNS answers.** After switching resolvers, `dig` shows the right
   answer while `ssh <name>` still fails for several minutes. Neither `dscacheutil

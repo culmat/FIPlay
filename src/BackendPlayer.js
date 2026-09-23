@@ -4,20 +4,20 @@ export default class BackendPlayer {
         this.udn = udn;
     }
     setVolume(volume) {
-        this.backend.setVolume(this.udn, volume);
+        return this.backend.setVolume(this.udn, volume);
     }
 
-    playURL(url) {
-        this.backend.playURL(this.udn, url);
-        this.play();
+    async playURL(url) {
+        await this.backend.playURL(this.udn, url);
+        await this.play();
     }
 
     play() {
-        this.backend.play(this.udn);
+        return this.backend.play(this.udn);
     }
 
     pause() {
-        this.backend.pause(this.udn);
+        return this.backend.pause(this.udn);
     }
 
 }

@@ -19,6 +19,12 @@ Everything below was learned on a TS-x53 class NAS running QTS 5.2. Paths are QT
 - QTS's own HTTPS vhost for the Web Server (`apache-ssl.conf`) listens on port 8081 when
   enabled. If something else uses 8081, enabling "secure connection" in the Web Server app
   will collide with it.
+- **`ProxyPass … nocanon` when the backend carries URLs in its path.** Apache normalises the
+  request path before proxying, and among other things merges `//` into `/`. An API such as
+  PyRaumfeld's `/zone/<udn>/play/https://icecast…/stream` then receives `https:/icecast…` and
+  the speaker gets a broken address, while `curl` against the backend port works and every
+  status looks fine. `nocanon` forwards the raw request URI; add `AllowEncodedSlashes
+  NoDecode` for the `%2F` variant.
 - `apachectl -t` works for a syntax check. The global `<Directory "/share/Web">` already has
   `AllowOverride All`, so an app's `.htaccess` keeps working under a new vhost with the same
   document root.

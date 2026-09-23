@@ -241,13 +241,20 @@ ${chainPresent ? `  SSLCertificateChainFile "${chain}"\n` : ''}  SSLProtocol -al
 # answers on plain HTTP as well. One manifest then works whether the app was
 # opened over http or https, and the setup can be tested before a certificate
 # is in place.
+#
+# nocanon: the API carries the stream URL inside the request path
+# (…/play/https://icecast…), and Apache would otherwise normalise that path,
+# merging the double slash and handing the speaker a broken address. With
+# nocanon the request URI goes to the backend exactly as the browser sent it.
+# AllowEncodedSlashes NoDecode keeps %2F intact for the same reason.
+AllowEncodedSlashes NoDecode
 ProxyPreserveHost Off
-ProxyPass ${backendPath} http://127.0.0.1:${backendPort}/
+ProxyPass ${backendPath} http://127.0.0.1:${backendPort}/ nocanon
 ProxyPassReverse ${backendPath} http://127.0.0.1:${backendPort}/
 ${metadata ? `
 # The now-playing metadata service, when it runs on this NAS, for the same
 # reason. The app is built with VITE_METADATA_URL=${metadata.path.replace(/\/$/, '')}
-ProxyPass ${metadata.path} http://127.0.0.1:${metadata.port}/
+ProxyPass ${metadata.path} http://127.0.0.1:${metadata.port}/ nocanon
 ProxyPassReverse ${metadata.path} http://127.0.0.1:${metadata.port}/
 ` : ''}`;
 

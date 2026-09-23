@@ -325,6 +325,39 @@ function syncStateSnapshot() {
     lastSnapshot = snapshot();
 }
 
+/**
+ * Send one command to one player, and cope with it failing.
+ *
+ * A speaker command fails when the backend holds a stale address for the
+ * device, which happens whenever the device reconnects to the network. One
+ * rescan and one retry cover that. If it still fails, the UI must not go on
+ * saying the speaker is playing: the state is put back and the snapshot
+ * resynced, so the correction is not itself sent as a pause.
+ */
+function send(title, command) {
+    const player = players[title];
+    Promise.resolve()
+        .then(command)
+        .catch(async firstError => {
+            if (player instanceof BackendPlayer) {
+                await player.backend.rescan();
+                try {
+                    await command();
+                    return;
+                } catch (retryError) {
+                    console.error(`${title}: command failed again after a rescan`, retryError);
+                }
+            } else {
+                console.error(`${title}: command failed`, firstError);
+            }
+            const state = uiStore.players.find(p => p.title === title);
+            if (state && state.playing) {
+                state.playing = false;
+                syncStateSnapshot();
+            }
+        });
+}
+
 uiStore.$subscribe(() => {
     const current = snapshot();
 
@@ -336,18 +369,18 @@ uiStore.$subscribe(() => {
         // against, and its state came from the hardware anyway.
         if (!player || !was) continue;
 
-        if (now.volume !== was.volume) player.setVolume(now.volume);
+        if (now.volume !== was.volume) send(title, () => player.setVolume(now.volume));
 
         const urlChanged = now.stationURL !== was.stationURL;
 
         if (now.playing && urlChanged && now.stationURL) {
             // A different station: point the player at it, which starts it too.
-            player.playURL(now.stationURL);
+            send(title, () => player.playURL(now.stationURL));
         } else if (now.playing && !was.playing) {
             // Same stream as before, so this is a resume, not a new stream.
-            player.play();
+            send(title, () => player.play());
         } else if (!now.playing && was.playing) {
-            player.pause();
+            send(title, () => player.pause());
         }
     }
 
