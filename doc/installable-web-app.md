@@ -37,8 +37,14 @@ Some consequences that are easy to miss:
 - Precache only the shell. If the app's whole purpose is a live network resource (a radio,
   a camera), there is nothing meaningful to serve offline, and runtime caching rules are a
   place to get stale data wrong. Cross-origin requests bypass a precache-only worker anyway.
-- Never reload the page automatically when a new worker is found. For anything playing media,
-  let the new version take over when all tabs are closed.
+- Do not leave updates to the worker's default either. By itself a new version waits until
+  every window is closed, which on a phone means launching twice after each deploy. Apply a
+  waiting update at once when the page is not playing anything itself, offer a "Restart"
+  when it is, and check for updates when the app returns to the foreground and on a timer,
+  not only at navigation. Show the build's commit in the UI: with a worker between phone and
+  server it is the only honest answer to "which version is this".
+- Remote players (speakers) are unaffected by a reload, so they need no protection; the local
+  `<audio>` element is what an unasked reload would interrupt.
 - Register the worker only when `window.isSecureContext` is true. On the http copy the API
   is not even exposed, and asking anyway logs an error nobody can act on.
 - Keep the version file and the manifest out of any cache, so a deploy can prove what is
