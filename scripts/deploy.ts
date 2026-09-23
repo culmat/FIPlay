@@ -131,5 +131,4 @@ if (!gotVersion) {
 }
 ok(`served version.json -> ${git.short}`);
 
-const backend = backendCfg().url;
-summary(`deployed ${git.short} -> ${webUrl}${backend ? `?backend=${backend}` : ''}`);
+summary(`deployed ${git.short} -> ${webUrl}${startBackend ? `?backend=${startBackend}` : ''}`);
