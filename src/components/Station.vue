@@ -147,6 +147,7 @@
 import { mdiArrowLeft, mdiLaptop, mdiPause, mdiPlay, mdiSpeaker } from '@mdi/js'
 
 import { isIOS } from '@/platform'
+import { STREAM_DELAY_MS } from '@/StationWatcher'
 import { useStationStore } from '@/stores/stationStore'
 import { useUIStore } from '@/stores/uiStore'
 import { ui } from '@/ui'
@@ -230,12 +231,13 @@ const calculateProgress = (track, nowMs) => {
   if (!track) return empty
 
   const totalTime = track.endTime - track.startTime
-  const elapsedTime = (nowMs - track.startTime * 1000) / 1000
+  // The feed keeps the studio's clock; what you hear runs a few seconds behind it.
+  const elapsedTime = (nowMs - STREAM_DELAY_MS - track.startTime * 1000) / 1000
 
   if (!(totalTime > 0) || !Number.isFinite(elapsedTime)) return empty
 
   // A track can outlive the data describing it, because the service reports
-  // the next one a little late. Hold at the end rather than counting past it.
+  // the next one late. Hold at the end rather than counting past it.
   const played = Math.min(Math.max(elapsedTime, 0), totalTime)
 
   return {

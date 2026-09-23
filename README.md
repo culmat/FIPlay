@@ -45,6 +45,15 @@ because the speakers are the only shared state there is: each copy asks them eve
 seconds what they are playing and follows. The About dialog offers a QR code for the address
 of the copy you are looking at, speakers included, to hand to a friend on the same network.
 
+Track changes are shown on time even though Radio France's feed is not. The feed names a new
+track 20 to 40 seconds after it started, and around the change it flickers between the old
+track and a programme placeholder. FIPlay therefore ignores placeholders while a song is on
+display, moves on to the track the feed announced as next as soon as the current one should be
+over on the speaker, and asks the feed every few seconds until it confirms or corrects that.
+Main FIP announces no next track during live shows, so there the change still waits for the
+feed. Start and end times are the studio's; the display runs a few seconds behind them to
+match what you hear.
+
 ## Where it runs
 
 - **GitHub Pages** at [culmat.github.io/FIPlay](https://culmat.github.io/FIPlay/), built and
