@@ -77,6 +77,7 @@ password once, interactively, and installs your SSH key instead.
 | `bun browse` | Shared Chromium with remote debugging, for you and coding agents |
 | `bun run deploy` | Build and rsync `dist/FIPlay` to the NAS, then verify what is served |
 | `bun run nas:status` | Read-only check of deployment, backend container, and public services |
+| `bun run nas:https` | Serve the app over HTTPS on the NAS, with the speaker API on the same origin |
 | `bun run backend <cmd>` | `status`, `logs`, `pull`, `restart`, `update` for the PyRaumfeld container |
 | `bun run nas:setup-ssh` | Install your SSH key on the NAS so the other commands need no password |
 | `bun run nas:ssh` | Interactive shell on the NAS |
@@ -135,6 +136,31 @@ screen icon never depends on anyone's toolchain.
 An installed app launches at the manifest's `start_url`, which carries no query string and so
 would come up without speakers. `bun run deploy` therefore stamps `?backend=` from your `.env`
 into the manifest it uploads; the GitHub Pages build has no backend and stays as it is.
+
+### `bun run nas:https`
+
+Installing the app from the NAS needs HTTPS, and plain HTTP is what the NAS serves by
+default. This command sets up the missing half: an Apache virtual host with TLS on port 4433,
+and a proxy that answers the PyRaumfeld API on a path of that same origin, because a page
+served over TLS may not call an `http://` address. Same origin also means no CORS. The app is
+then opened with `?backend=/pyraumfeld/`, and `bun run deploy` writes that into the manifest
+so an installed copy starts with the speakers already reachable.
+
+Run `bun run nas:https --check` first: it reports the certificate, the modules, the port and
+whether PyRaumfeld is answering, and changes nothing. The certificate is yours to provide, at
+`/etc/stunnel/stunnel.pem` (QTS writes it there via *Control Panel > Security > SSL
+Certificate & Private Key*). It must be valid and match the hostname the phone uses, or the
+browser refuses the site outright, which also means no service worker and no install.
+
+The command is written to be re-run, for a reason worth knowing: QNAP regenerates the files
+under `/etc/config/apache/extra/` from its own settings on every web server restart, so an
+`Include` added there is gone the moment the server comes back. The one in `apache.conf`
+survives a restart but not necessarily a firmware update, which is the likeliest reason a
+working HTTPS site on a QNAP goes quiet by itself. Run it again and it is back.
+
+The proxy path is deliberately configured at server level rather than inside the TLS virtual
+host, so it answers over plain HTTP too. One manifest then works either way, and the setup can
+be tested before a certificate is in place.
 
 ### `bun run deploy`
 

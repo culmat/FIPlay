@@ -42,6 +42,11 @@ export const ENV = {
   BACKEND_IMAGE: 'FIPLAY_BACKEND_IMAGE',
   BACKEND_CONTAINER: 'FIPLAY_BACKEND_CONTAINER',
   NAS_DOCKER: 'FIPLAY_NAS_DOCKER',
+  BACKEND_PATH: 'FIPLAY_BACKEND_PATH',
+  NAS_HTTPS_HOST: 'FIPLAY_NAS_HTTPS_HOST',
+  NAS_HTTPS_PORT: 'FIPLAY_NAS_HTTPS_PORT',
+  NAS_CERT: 'FIPLAY_NAS_CERT',
+  NAS_CERT_CHAIN: 'FIPLAY_NAS_CERT_CHAIN',
   CDP_PORT: 'BROWSER_CDP_PORT',
   PROFILE_DIR: 'BROWSER_PROFILE_DIR',
   BROWSER_URL: 'BROWSER_URL',
@@ -257,6 +262,15 @@ export type Zone = { name: string; udn: string };
 export function backendCfg() {
   return {
     url: env(ENV.BACKEND_URL),
+    /**
+     * Where the browser reaches the API when the app is served over HTTPS.
+     *
+     * A page on https may not call an http address, so the speakers are only
+     * reachable from an installed app if the API answers on the app's own
+     * origin. `bun run nas:https` puts a proxy there; this is the path it
+     * listens on, and what the manifest's start_url carries.
+     */
+    path: env(ENV.BACKEND_PATH),
     port: envOr(ENV.BACKEND_PORT, '8081'),
     image: envOr(ENV.BACKEND_IMAGE, 'ghcr.io/culmat/pyraumfeld:master'),
     container: envOr(ENV.BACKEND_CONTAINER, 'pyraumfeld'),

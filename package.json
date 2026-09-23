@@ -13,6 +13,7 @@
     "deploy": "bun scripts/deploy.ts",
     "backend": "bun scripts/backend.ts",
     "nas:status": "bun scripts/nas-status.ts",
+    "nas:https": "bun scripts/nas-https.ts",
     "nas:setup-ssh": "bun scripts/nas-setup-ssh.ts",
     "nas:ssh": "bun scripts/nas-ssh.ts"
   },

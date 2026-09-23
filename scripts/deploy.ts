@@ -65,13 +65,19 @@ ok(`built dist/FIPlay (version.json -> ${git.short})`);
 // specific to this network, so it is stamped in at deploy time rather than
 // committed into the manifest.
 const manifestPath = resolve(DIST_DIR, 'manifest.webmanifest');
-const backendURL = backendCfg().url;
-if (backendURL && existsSync(manifestPath)) {
+const backend = backendCfg();
+
+// Prefer the same-origin path when there is one: an installed app is served
+// over HTTPS, and an HTTPS page may not call an http:// address, so an absolute
+// LAN URL would be blocked as mixed content. See `bun run nas:https`.
+const startBackend = backend.path ?? backend.url;
+if (startBackend && existsSync(manifestPath)) {
   const manifest = JSON.parse(await Bun.file(manifestPath).text());
-  manifest.start_url = `/FIPlay/?backend=${encodeURIComponent(backendURL)}`;
+  manifest.start_url = `/FIPlay/?backend=${encodeURIComponent(startBackend)}`;
   await Bun.write(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   ok(`manifest start_url -> ${manifest.start_url}`);
-} else if (!backendURL) {
+  if (!backend.path) info(`${ENV.BACKEND_PATH} not set: an installed app over HTTPS will not reach the speakers`);
+} else if (!startBackend) {
   info(`${ENV.BACKEND_URL} not set: installed app will start without speakers`);
 }
 
