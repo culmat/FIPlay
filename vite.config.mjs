@@ -65,6 +65,15 @@ export default defineConfig({
         // metadata service must never be answered from a cache.
         navigateFallbackDenylist: [/version\.json$/],
         cleanupOutdatedCaches: true,
+        // Take over as soon as installed instead of waiting for every window
+        // of the app to close. On Firefox for Android that moment never comes:
+        // swiping the app away does not end its process, and a browser tab of
+        // the same site counts as a window too, so a waiting worker stayed
+        // waiting and the phone kept the old version indefinitely. The page
+        // itself decides what to do when the new worker takes control; see
+        // src/pwa.js.
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: { enabled: false },
     }),

@@ -123,13 +123,15 @@ Two things are needed for that, and both are easy to miss:
   metadata, the artwork, the audio stream and the speaker backend, is cross-origin and goes
   to the network, so there is nothing to serve stale. A new build takes over once every tab
   of the app is closed, which is deliberate: a radio should not reload itself mid-track.
-- **How it updates.** The worker fetches a new version in the background and, by itself, only
-  takes over once every window of the app is closed, which on a phone means launching twice
-  after a deploy. So FIPlay applies a waiting update at once when nothing is playing in that
-  browser (the page reloads a moment after launch), and shows a small "Restart" prompt when
-  something is; speakers keep playing either way. It checks on launch, when it returns to the
-  foreground, and hourly. The About dialog shows the commit the running bundle was built from,
-  which is the only reliable way to tell what a phone is actually running.
+- **How it updates.** A worker's default is to fetch a new version in the background and take
+  over only once every window of the app is closed. On Firefox for Android that never happens:
+  swiping the app away does not end its process, and a browser tab of the same site counts as a
+  window, so a phone kept the old version indefinitely. FIPlay's worker therefore takes over as
+  soon as it has downloaded. The open page then reloads itself when nothing is playing in that
+  browser (a moment after launch), or shows a small "Restart" prompt when something is; speakers
+  keep playing either way. It checks on launch, when it returns to the foreground, and hourly.
+  The About dialog shows the commit the running bundle was built from, which is the only
+  reliable way to tell what a phone is actually running.
 - **A secure origin.** Service workers and installability both require HTTPS. `localhost`
   counts, a plain `http://` LAN address does not. So the GitHub Pages copy installs, and a
   NAS served over plain HTTP will always open in a browser tab however good the manifest is.

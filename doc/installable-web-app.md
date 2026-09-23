@@ -38,10 +38,14 @@ Some consequences that are easy to miss:
   a camera), there is nothing meaningful to serve offline, and runtime caching rules are a
   place to get stale data wrong. Cross-origin requests bypass a precache-only worker anyway.
 - Do not leave updates to the worker's default either. By itself a new version waits until
-  every window is closed, which on a phone means launching twice after each deploy. Apply a
-  waiting update at once when the page is not playing anything itself, offer a "Restart"
-  when it is, and check for updates when the app returns to the foreground and on a timer,
-  not only at navigation. Show the build's commit in the UI: with a worker between phone and
+  every window is closed. On Firefox for Android that never happens: swiping the app away does
+  not end its process, and a browser tab of the same site counts as a window, so the old
+  version persists indefinitely. Build the worker with `skipWaiting` and `clientsClaim` so it
+  takes over the moment it has downloaded, and decide in the page what to do when it does:
+  reload at once when the page is not playing anything itself, offer a "Restart" when it is.
+  Check for updates when the app returns to the foreground and on a timer, not only at
+  navigation. The one hazard of taking over early, an old page lazy-loading a chunk that no
+  longer exists, is covered by reloading once on a failed dynamic import. Show the build's commit in the UI: with a worker between phone and
   server it is the only honest answer to "which version is this".
 - Remote players (speakers) are unaffected by a reload, so they need no protection; the local
   `<audio>` element is what an unasked reload would interrupt.
