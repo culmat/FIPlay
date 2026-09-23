@@ -19,6 +19,7 @@ import Bowser from "bowser";
 import BackendPlayer from './BackendPlayer';
 import BrowserPlayer from './BrowserPlayer';
 import { bindMediaSession } from './mediaSession';
+import { registerServiceWorker } from './pwa';
 const browser = Bowser.getParser(window.navigator.userAgent);
 
 const app = createApp(App)
@@ -32,13 +33,10 @@ app.provide('playStation', playStation)
 app.mount('#app')
 
 // Registering needs a secure origin, which a plain http LAN address is not.
-// Asking anyway only produces an error nobody can act on. A new version takes
-// over once every tab is closed, so an update never interrupts what is playing.
-if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
-    import('virtual:pwa-register')
-        .then(({ registerSW }) => registerSW({ immediate: true }))
-        .catch(error => console.debug('Service worker not registered:', error));
-}
+// A new version applies itself unless this browser is playing; see pwa.js.
+registerServiceWorker({
+    canRestartNow: () => !uiStore.players.find(p => p.kind === 'browser')?.playing,
+});
 
 const stationStore = useStationStore();
 const uiStore = useUIStore();

@@ -23,6 +23,7 @@
 
     <OutputSheet />
     <AboutDialog />
+    <UpdateToast />
   </div>
 </template>
 

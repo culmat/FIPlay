@@ -123,6 +123,13 @@ Two things are needed for that, and both are easy to miss:
   metadata, the artwork, the audio stream and the speaker backend, is cross-origin and goes
   to the network, so there is nothing to serve stale. A new build takes over once every tab
   of the app is closed, which is deliberate: a radio should not reload itself mid-track.
+- **How it updates.** The worker fetches a new version in the background and, by itself, only
+  takes over once every window of the app is closed, which on a phone means launching twice
+  after a deploy. So FIPlay applies a waiting update at once when nothing is playing in that
+  browser (the page reloads a moment after launch), and shows a small "Restart" prompt when
+  something is; speakers keep playing either way. It checks on launch, when it returns to the
+  foreground, and hourly. The About dialog shows the commit the running bundle was built from,
+  which is the only reliable way to tell what a phone is actually running.
 - **A secure origin.** Service workers and installability both require HTTPS. `localhost`
   counts, a plain `http://` LAN address does not. So the GitHub Pages copy installs, and a
   NAS served over plain HTTP will always open in a browser tab however good the manifest is.

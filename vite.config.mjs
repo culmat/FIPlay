@@ -9,7 +9,21 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
 import { copyFileSync, existsSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import { resolve } from 'node:path'
+
+// The short commit of the code being built, shown in the About dialog. That
+// is the only reliable way to tell which version a phone is actually running
+// once a service worker sits between it and the server.
+const buildVersion = (() => {
+  try {
+    const hash = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+    const dirty = execSync('git status --porcelain', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() !== ''
+    return dirty ? `${hash}-dirty` : hash
+  } catch {
+    return 'dev'
+  }
+})()
 
 // Static hosts serve 404.html for paths they do not have. Making it the app
 // lets /station/<name> survive a reload on GitHub Pages, which offers no
@@ -67,7 +81,10 @@ export default defineConfig({
       vueTemplate: true,
     }),
   ],
-  define: { 'process.env': {} },
+  define: {
+    'process.env': {},
+    __APP_VERSION__: JSON.stringify(buildVersion),
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

@@ -122,11 +122,17 @@
         </div>
       </div>
 
-      <p
-        v-if="version"
-        class="about__version"
-      >
-        Build {{ version }}
+      <p class="about__version">
+        Build {{ build }}<template v-if="served && served !== build">
+          · server has {{ served }}
+        </template>
+        <button
+          v-if="ui.updateReady"
+          class="about__restart"
+          @click="applyUpdate"
+        >
+          Restart to update
+        </button>
       </p>
     </div>
   </dialog>
@@ -135,10 +141,14 @@
 <script setup>
 import { mdiClose, mdiGithub, mdiOpenInNew, mdiQrcode, mdiRadio, mdiScaleBalance } from '@mdi/js'
 
+import { applyUpdate } from '@/pwa'
 import { ui } from '@/ui'
 
 const el = ref(null)
-const version = ref('')
+// The commit this bundle was built from, baked in at build time; and what the
+// server says it is serving, when it says (NAS deploys write version.json).
+const build = __APP_VERSION__
+const served = ref('')
 const route = useRoute()
 
 // The address worth handing to a friend on the same network: this deployment's
@@ -194,7 +204,7 @@ async function sync () {
   if (!el.value) return
   if (ui.aboutOpen && !el.value.open) {
     el.value.showModal()
-    if (!version.value) version.value = await readVersion()
+    if (!served.value) served.value = await readVersion()
   }
   if (!ui.aboutOpen && el.value.open) el.value.close()
 }
@@ -208,7 +218,7 @@ async function readVersion () {
     const res = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: 'no-store' })
     if (!res.ok) return ''
     const info = await res.json()
-    return info.short ? `${info.short}${info.dirty ? ' (dirty)' : ''}` : ''
+    return info.short ? `${info.short}${info.dirty ? '-dirty' : ''}` : ''
   } catch {
     return ''
   }
@@ -332,5 +342,12 @@ async function readVersion () {
   padding: 10px 12px 2px;
   font-size: 0.75rem;
   color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.about__restart {
+  margin-left: 8px;
+  color: var(--accent);
+  font-weight: 600;
 }
 </style>

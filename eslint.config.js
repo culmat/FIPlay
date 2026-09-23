@@ -22,6 +22,8 @@ export default [
       globals: {
         ...globals.browser,
         ...autoImports.globals,
+        // Injected by Vite's define (see vite.config.mjs).
+        __APP_VERSION__: 'readonly',
       },
     },
   },

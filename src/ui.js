@@ -10,4 +10,7 @@ import { reactive } from 'vue'
 export const ui = reactive({
   outputOpen: false,
   aboutOpen: false,
+  // A newer version of the app is downloaded and waiting to take over.
+  updateReady: false,
+  updateDismissed: false,
 })
