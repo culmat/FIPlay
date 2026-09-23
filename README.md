@@ -172,6 +172,14 @@ router's own names back to it. A Pi-hole, for instance, does not know the names 
 clients, so `nas` and `nas.fritz.box` stop resolving the moment devices switch to it unless it
 forwards that zone and unqualified names to the router.
 
+**Renewal.** QTS's own Let's Encrypt agent can validate a myQNAPcloud name over DNS, which is
+what a carrier-NAT connection needs, but its wrapper lost the issued certificate in
+post-processing and reported success regardless. The Python ACME client inside it works on its
+own, so [scripts/nas/renew-cert.sh](scripts/nas/renew-cert.sh) drives that client directly and
+installs the result into `/etc/stunnel/`, where the vhost reads it. It lives on the NAS next to
+the certificate files and runs from QNAP's crontab on the first of each month, renewing when
+fewer than 30 days remain. It logs to `renew.log` beside it.
+
 The last phase checks the address from the machine you run it on, not only from the NAS,
 because those are different questions. A certificate names a public hostname, that hostname
 resolves to your public address, and a home router will not necessarily route a request from
