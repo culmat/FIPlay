@@ -30,7 +30,7 @@
  *   FIPLAY_BACKEND_PATH     path the API is proxied on (default /pyraumfeld/)
  *   FIPLAY_BACKEND_PORT     port PyRaumfeld listens on (default 8081)
  */
-import { ENV, abort, backendCfg, env, envOr, gap, gaps, info, ok, phase, requireEnv, requireSsh, shq, skip, ssh, summary } from './lib';
+import { ENV, abort, backendCfg, envOr, gap, gaps, httpStatus, info, ok, phase, requireEnv, requireSsh, shq, skip, ssh, summary } from './lib';
 
 const CONF = '/etc/config/apache/extra/httpd-fiplay-ssl.conf';
 
@@ -214,7 +214,21 @@ const apiStatus = await ssh(`curl -s -k -o /dev/null -m 15 -w "%{http_code}" htt
 if (apiStatus.stdout.startsWith('2')) ok(`https://…:${port}${backendPath}zones -> ${apiStatus.stdout}`);
 else gap('GAP', `the proxied API answered ${apiStatus.stdout || 'nothing'}`);
 
+// Everything above was checked from the NAS itself, which proves the server is
+// right and nothing about whether a phone on the sofa can reach it. The name on
+// the certificate usually points at the public address, and a home router will
+// not always route back in from the inside, so check from here too.
 const url = `https://${serverName}:${port}/FIPlay/`;
+const fromHere = await httpStatus(url, 8000);
+if (fromHere === null) {
+  gap('GAP', `${serverName}:${port} does not answer from this machine`);
+  info('The NAS is serving; the address just does not lead back to it from inside');
+  info('the network. Either forward the port on the router and let it route back');
+  info('in, or resolve this name to the LAN address of the NAS at home.');
+} else {
+  ok(`${serverName}:${port} reachable from this machine (${fromHere})`);
+}
+
 if (expired) info('the certificate is still expired, so a browser will refuse this address');
 summary(gaps() > 0 ? `HTTPS is configured at ${url}, with ${gaps()} thing(s) left` : `HTTPS ready at ${url}`);
 if (gaps() === 0) {

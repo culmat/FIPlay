@@ -162,6 +162,13 @@ The proxy path is deliberately configured at server level rather than inside the
 host, so it answers over plain HTTP too. One manifest then works either way, and the setup can
 be tested before a certificate is in place.
 
+The last phase checks the address from the machine you run it on, not only from the NAS,
+because those are different questions. A certificate names a public hostname, that hostname
+resolves to your public address, and a home router will not necessarily route a request from
+inside the network back in to itself. If that check fails, the server is fine and the route is
+not: forward the port and rely on the router routing back in, or make the name resolve to the
+NAS's own address while you are at home.
+
 ### `bun run deploy`
 
 Checks SSH and rsync on both ends, builds, writes a `version.json` next to `index.html`
