@@ -108,9 +108,25 @@ screen and no browser chrome. The layout keeps its controls clear of the notch a
 indicator through `env(safe-area-inset-*)`, which needs the `viewport-fit=cover` in
 `index.html` to resolve to anything.
 
-There is deliberately no service worker. A radio needs the network to play anything, so an
-offline shell would buy nothing and a stale precache is a good way to keep serving an old
-build after a deploy.
+Two things are needed for that, and both are easy to miss:
+
+- **A service worker.** Without one, Firefox and Chrome on Android treat *Add to Home Screen*
+  as a bookmark: it opens in a tab, with the address bar, and the status bar keeps the
+  browser's colour instead of the manifest's `theme_color`. The manifest alone is not enough.
+  FIPlay's worker only precaches the app shell. Everything that matters at runtime, the
+  metadata, the artwork, the audio stream and the speaker backend, is cross-origin and goes
+  to the network, so there is nothing to serve stale. A new build takes over once every tab
+  of the app is closed, which is deliberate: a radio should not reload itself mid-track.
+- **A secure origin.** Service workers and installability both require HTTPS. `localhost`
+  counts, a plain `http://` LAN address does not. So the GitHub Pages copy installs, and a
+  NAS served over plain HTTP will always open in a browser tab however good the manifest is.
+  FIPlay only registers the worker when the origin is secure, rather than logging a failure
+  nobody can act on.
+
+Note that the two copies cannot simply be swapped for each other. A page served over HTTPS may
+not call an `http://` backend, so the GitHub Pages copy can install but cannot reach speakers
+on your network. Putting both the app and the PyRaumfeld API behind HTTPS on the same origin
+is what gets the installed app and the speakers at once.
 
 `bun run icons` regenerates the PNGs from one SVG defined in `scripts/icons.ts`, rendering
 them with the Chromium that `bun browse` already needs. The PNGs are committed, so a home

@@ -31,6 +31,15 @@ app.provide('playStation', playStation)
 
 app.mount('#app')
 
+// Registering needs a secure origin, which a plain http LAN address is not.
+// Asking anyway only produces an error nobody can act on. A new version takes
+// over once every tab is closed, so an update never interrupts what is playing.
+if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
+    import('virtual:pwa-register')
+        .then(({ registerSW }) => registerSW({ immediate: true }))
+        .catch(error => console.debug('Service worker not registered:', error));
+}
+
 const stationStore = useStationStore();
 const uiStore = useUIStore();
 
