@@ -29,8 +29,17 @@
  *                           skipped when absent)
  *   FIPLAY_BACKEND_PATH     path the API is proxied on (default /pyraumfeld/)
  *   FIPLAY_BACKEND_PORT     port PyRaumfeld listens on (default 8081)
+ *   FIPLAY_CERT_EMAIL       set it and the certificate is handled too: the renewal
+ *                           script (scripts/nas/renew-cert.sh) is installed on the
+ *                           NAS with a monthly cron entry, and run once now if the
+ *                           installed certificate is missing, expired or for another
+ *                           name. Needs a myQNAPcloud DDNS name as the host.
+ *   FIPLAY_NAS_CERT_DIR     where that script and its files live (default /share/fiplay-cert)
  */
-import { ENV, abort, backendCfg, envOr, gap, gaps, info, metadataProxyCfg, ok, phase, requireEnv, requireSsh, shq, skip, ssh, summary } from './lib';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+import { ENV, SCRIPT_DIR, abort, backendCfg, env, envOr, gap, gaps, info, metadataProxyCfg, ok, phase, requireEnv, requireSsh, shq, skip, ssh, summary } from './lib';
 
 const CONF = '/etc/config/apache/extra/httpd-fiplay-ssl.conf';
 
@@ -70,6 +79,11 @@ const chain = envOr(ENV.NAS_CERT_CHAIN, '/etc/stunnel/uca.pem');
 const backendPath = (backendCfg().path ?? '/pyraumfeld/').replace(/\/*$/, '/');
 const backendPort = backendCfg().port;
 const metadata = metadataProxyCfg();
+const certEmail = env(ENV.CERT_EMAIL);
+const certDir = envOr(ENV.NAS_CERT_DIR, '/share/fiplay-cert').replace(/\/+$/, '');
+const RENEW_LOCAL = resolve(SCRIPT_DIR, 'nas', 'renew-cert.sh');
+const RENEW_REMOTE = `${certDir}/renew-cert.sh`;
+const CRONTAB = '/etc/config/crontab';
 
 if (!backendPath.startsWith('/')) abort(`${ENV.BACKEND_PATH} must start with a slash, got ${backendPath}`);
 
@@ -78,25 +92,68 @@ phase('Phase 1: Preflight');
 const { target } = await requireSsh();
 ok(`ssh ${target}`);
 
-const certInfo = await ssh(`[ -f ${shq(cert)} ] && openssl x509 -in ${shq(cert)} -noout -subject -enddate -checkend 0; echo "exit:$?"`);
-if (!certInfo.stdout.includes('subject')) abort(`no certificate at ${cert} on the NAS (set ${ENV.NAS_CERT})`);
-
-const expired = certInfo.stdout.includes('exit:1');
-const notAfter = /notAfter=(.*)/.exec(certInfo.stdout)?.[1]?.trim() ?? 'unknown';
-const subject = /subject=\s*(.*)/.exec(certInfo.stdout)?.[1]?.trim() ?? 'unknown';
-if (expired) {
-  gap('GAP', `certificate expired on ${notAfter} (${subject})`);
-  info('A browser refuses an expired certificate, which means no service worker,');
-  info('no install, and a warning page instead of the app. Renew it first:');
-  info('  QTS > Control Panel > Security > SSL Certificate & Private Key > Replace');
-  info(`  or install a new PEM (certificate + key) at ${cert}`);
-  if (!FORCE && !CHECK_ONLY) abort('refusing to publish HTTPS with an expired certificate (pass --force to set it up anyway)');
-} else {
-  ok(`certificate ${subject}, valid until ${notAfter}`);
+async function readCert () {
+  const res = await ssh(`[ -f ${shq(cert)} ] && openssl x509 -in ${shq(cert)} -noout -subject -enddate -checkend 0; echo "exit:$?"`);
+  const present = res.stdout.includes('subject');
+  const subject = /subject=\s*(.*)/.exec(res.stdout)?.[1]?.trim() ?? 'none';
+  return {
+    present,
+    expired: !present || res.stdout.includes('exit:1'),
+    notAfter: /notAfter=(.*)/.exec(res.stdout)?.[1]?.trim() ?? 'unknown',
+    subject,
+    nameMatches: subject.includes(serverName),
+  };
 }
 
-const nameMatches = subject.includes(serverName);
-if (!nameMatches) gap('GAP', `certificate is not for ${serverName}; the phone will warn unless the name matches`);
+let certState = await readCert();
+if (!certState.present && !certEmail) abort(`no certificate at ${cert} on the NAS (set ${ENV.NAS_CERT}, or ${ENV.CERT_EMAIL} to have one issued)`);
+
+/**
+ * Certificate. With an email configured this is handled here: the renewal
+ * script goes onto the NAS with a cron entry, and runs now if what is installed
+ * will not do. Without one, an unusable certificate is only reported.
+ */
+const certUsable = () => certState.present && !certState.expired && certState.nameMatches;
+if (certEmail && !CHECK_ONLY) {
+  const script = readFileSync(RENEW_LOCAL, 'utf8');
+  const encoded = Buffer.from(script, 'utf8').toString('base64');
+  const put = await ssh(`mkdir -p ${shq(certDir)} && chmod 700 ${shq(certDir)} && echo ${shq(encoded)} | openssl base64 -d -A > ${shq(RENEW_REMOTE)} && chmod 700 ${shq(RENEW_REMOTE)} && echo ok`);
+  if (!put.stdout.includes('ok')) abort(`could not install ${RENEW_REMOTE}: ${put.stderr || put.stdout}`);
+  ok(`renewal script at ${RENEW_REMOTE}`);
+
+  const cronLine = `30 4 1 * * ${RENEW_REMOTE} ${serverName} ${certEmail} 30 >> ${certDir}/renew.log 2>&1`;
+  const cronHas = await fileContains(RENEW_REMOTE, CRONTAB);
+  if (cronHas) {
+    skip('cron entry already present');
+  } else {
+    const cron = await ssh(`printf '%s\n' ${shq(cronLine)} >> ${shq(CRONTAB)} && crontab ${shq(CRONTAB)} && echo ok`);
+    if (!cron.stdout.includes('ok')) abort(`could not add the cron entry: ${cron.stderr || cron.stdout}`);
+    ok('cron entry added: monthly, renews with fewer than 30 days left');
+  }
+
+  if (!certUsable()) {
+    info(`installed certificate: ${certState.present ? `${certState.subject}, ${certState.expired ? 'expired' : 'valid'} (${certState.notAfter})` : 'none'}; requesting one for ${serverName}…`);
+    const issue = await ssh(`${shq(RENEW_REMOTE)} ${shq(serverName)} ${shq(certEmail)} 30 2>&1 | tail -5`);
+    for (const line of issue.stdout.split('\n').filter(Boolean)) info(line);
+    certState = await readCert();
+    if (!certUsable()) abort(`no usable certificate after the request; see ${certDir}/acme.log on the NAS`);
+    ok(`certificate issued: ${certState.subject}, valid until ${certState.notAfter}`);
+  }
+}
+
+if (!certState.present) {
+  gap('GAP', `no certificate at ${cert}`);
+} else if (certState.expired) {
+  gap('GAP', `certificate expired on ${certState.notAfter} (${certState.subject})`);
+  info('A browser refuses an expired certificate, which means no service worker,');
+  info('no install, and a warning page instead of the app.');
+  info(certEmail ? `  the renewal step above should have replaced it; see ${certDir}/acme.log` : `  set ${ENV.CERT_EMAIL} and re-run, or install a PEM (certificate + key) at ${cert}`);
+  if (!FORCE && !CHECK_ONLY) abort('refusing to publish HTTPS with an expired certificate (pass --force to set it up anyway)');
+} else {
+  ok(`certificate ${certState.subject}, valid until ${certState.notAfter}`);
+}
+if (certState.present && !certState.nameMatches) gap('GAP', `certificate is not for ${serverName}; the phone will warn unless the name matches`);
+const expired = certState.expired;
 
 const modules = await ssh('ls /usr/local/apache/modules/ | grep -E "^mod_(ssl|proxy|proxy_http)\\.so$" | tr "\\n" " "');
 for (const m of ['mod_ssl.so', 'mod_proxy.so', 'mod_proxy_http.so']) {
@@ -125,6 +182,13 @@ if (metadata) {
 if (CHECK_ONLY) {
   const installed = await fileContains(CONF, INCLUDE_IN);
   info(installed ? 'the Include is in place' : 'the Include is NOT in place; run without --check to install it');
+  if (certEmail) {
+    const haveScript = (await ssh(`[ -x ${shq(RENEW_REMOTE)} ] && echo yes || echo no`)).stdout.trim() === 'yes';
+    const haveCron = await fileContains(RENEW_REMOTE, CRONTAB);
+    info(`renewal: script ${haveScript ? 'installed' : 'MISSING'}, cron ${haveCron ? 'present' : 'MISSING'}`);
+  } else {
+    info(`${ENV.CERT_EMAIL} not set: certificate renewal is not managed by this tool`);
+  }
   summary(gaps() > 0 ? `${gaps()} thing(s) to sort out before HTTPS will work` : 'ready to install');
   process.exit(0);
 }

@@ -169,7 +169,7 @@ on the same box, for the same mixed-content reason as the speaker API.
 
 If the resolver you point the router at is not the router itself, make sure it hands the
 router's own names back to it. A Pi-hole, for instance, does not know the names of your DHCP
-clients, so `nas` and `nas.fritz.box` stop resolving the moment devices switch to it unless it
+clients, so `<nas>` and `<nas>.fritz.box` stop resolving the moment devices switch to it unless it
 forwards that zone and unqualified names to the router.
 
 **Renewal.** QTS's own Let's Encrypt agent can validate a myQNAPcloud name over DNS, which is
@@ -203,6 +203,13 @@ The PyRaumfeld container needs host networking, because it discovers the Raumfel
 UPnP. `bun run backend update` pulls the image and, if the digest changed, recreates the
 container with exactly that configuration and waits for the API to answer again. It restarts
 your speaker backend, so it is deliberately a separate command from `deploy`.
+
+## Notes from the field
+
+[doc/](doc/README.md) collects what was learned getting the app to install on a phone behind
+a carrier-NAT home connection: what a phone requires to install a web app, HTTPS without any
+inbound port, Pi-hole as the LAN resolver, QNAP and FRITZ!Box specifics, and how the work was
+done together with a coding agent. Most of it applies beyond this project.
 
 ## Known issues
 
