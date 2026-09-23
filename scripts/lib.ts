@@ -32,6 +32,18 @@ export function metadataURL(): string {
   return envOr('VITE_METADATA_URL', DEFAULT_METADATA_URL).replace(/\/+$/, '');
 }
 
+/**
+ * A metadata service running on the NAS itself, proxied onto the web server's
+ * own origin by `bun run nas:https`, for the same reason as the speaker API:
+ * an HTTPS page may not fetch from an http:// address. Both keys or neither.
+ */
+export function metadataProxyCfg(): { port: string; path: string } | null {
+  const port = env(ENV.METADATA_PORT);
+  if (!port) return null;
+  const path = envOr(ENV.METADATA_PATH, '/metadata/').replace(/\/*$/, '/');
+  return { port, path };
+}
+
 export const ENV = {
   NAS_HOST: 'FIPLAY_NAS_HOST',
   NAS_USER: 'FIPLAY_NAS_USER',
@@ -43,6 +55,8 @@ export const ENV = {
   BACKEND_CONTAINER: 'FIPLAY_BACKEND_CONTAINER',
   NAS_DOCKER: 'FIPLAY_NAS_DOCKER',
   BACKEND_PATH: 'FIPLAY_BACKEND_PATH',
+  METADATA_PORT: 'FIPLAY_METADATA_PORT',
+  METADATA_PATH: 'FIPLAY_METADATA_PATH',
   NAS_HTTPS_HOST: 'FIPLAY_NAS_HTTPS_HOST',
   NAS_HTTPS_PORT: 'FIPLAY_NAS_HTTPS_PORT',
   NAS_CERT: 'FIPLAY_NAS_CERT',
@@ -139,8 +153,14 @@ export async function run(cmd: string[], opts: { cwd?: string } = {}): Promise<R
 }
 
 /** Run a command with the terminal attached (prompts, progress, colours pass through). */
-export function runInherit(cmd: string[], opts: { cwd?: string } = {}): number {
-  const res = Bun.spawnSync(cmd, { cwd: opts.cwd ?? REPO_ROOT, stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' });
+export function runInherit(cmd: string[], opts: { cwd?: string; env?: Record<string, string> } = {}): number {
+  const res = Bun.spawnSync(cmd, {
+    cwd: opts.cwd ?? REPO_ROOT,
+    env: opts.env ? { ...process.env, ...opts.env } : process.env,
+    stdin: 'inherit',
+    stdout: 'inherit',
+    stderr: 'inherit',
+  });
   return res.exitCode ?? 1;
 }
 

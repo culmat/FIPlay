@@ -30,7 +30,7 @@
  *   FIPLAY_BACKEND_PATH     path the API is proxied on (default /pyraumfeld/)
  *   FIPLAY_BACKEND_PORT     port PyRaumfeld listens on (default 8081)
  */
-import { ENV, abort, backendCfg, envOr, gap, gaps, httpStatus, info, ok, phase, requireEnv, requireSsh, shq, skip, ssh, summary } from './lib';
+import { ENV, abort, backendCfg, envOr, gap, gaps, info, metadataProxyCfg, ok, phase, requireEnv, requireSsh, shq, skip, ssh, summary } from './lib';
 
 const CONF = '/etc/config/apache/extra/httpd-fiplay-ssl.conf';
 
@@ -69,6 +69,7 @@ const cert = envOr(ENV.NAS_CERT, '/etc/stunnel/stunnel.pem');
 const chain = envOr(ENV.NAS_CERT_CHAIN, '/etc/stunnel/uca.pem');
 const backendPath = (backendCfg().path ?? '/pyraumfeld/').replace(/\/*$/, '/');
 const backendPort = backendCfg().port;
+const metadata = metadataProxyCfg();
 
 if (!backendPath.startsWith('/')) abort(`${ENV.BACKEND_PATH} must start with a slash, got ${backendPath}`);
 
@@ -112,6 +113,14 @@ ok(portTaken ? `port ${port} already served by this configuration` : `port ${por
 const backendUp = await ssh(`curl -s -o /dev/null -m 5 -w "%{http_code}" http://127.0.0.1:${backendPort}/zones`);
 if (backendUp.stdout.startsWith('2')) ok(`PyRaumfeld answers on 127.0.0.1:${backendPort}`);
 else gap('GAP', `PyRaumfeld did not answer on 127.0.0.1:${backendPort} (got ${backendUp.stdout || 'nothing'})`);
+
+if (metadata) {
+  const metaUp = await ssh(`curl -s -o /dev/null -m 8 -w "%{http_code}" http://127.0.0.1:${metadata.port}/api/metadata/fip`);
+  if (metaUp.stdout.startsWith('2')) ok(`metadata service answers on 127.0.0.1:${metadata.port}`);
+  else gap('GAP', `metadata service did not answer on 127.0.0.1:${metadata.port} (got ${metaUp.stdout || 'nothing'})`);
+} else {
+  info(`${ENV.METADATA_PORT} not set: the app will fetch metadata from ${ENV.METADATA_URL} directly, which https blocks if that is http://`);
+}
 
 if (CHECK_ONLY) {
   const installed = await fileContains(CONF, INCLUDE_IN);
@@ -171,7 +180,12 @@ ${chainPresent ? `  SSLCertificateChainFile "${chain}"\n` : ''}  SSLProtocol -al
 ProxyPreserveHost Off
 ProxyPass ${backendPath} http://127.0.0.1:${backendPort}/
 ProxyPassReverse ${backendPath} http://127.0.0.1:${backendPort}/
-`;
+${metadata ? `
+# The now-playing metadata service, when it runs on this NAS, for the same
+# reason. The app is built with VITE_METADATA_URL=${metadata.path.replace(/\/$/, '')}
+ProxyPass ${metadata.path} http://127.0.0.1:${metadata.port}/
+ProxyPassReverse ${metadata.path} http://127.0.0.1:${metadata.port}/
+` : ''}`;
 
 const encoded = Buffer.from(conf, 'utf8').toString('base64');
 const write = await ssh(`echo ${shq(encoded)} | openssl base64 -d -A > ${shq(CONF)} && chmod 644 ${shq(CONF)} && echo written`);
@@ -214,12 +228,27 @@ const apiStatus = await ssh(`curl -s -k -o /dev/null -m 15 -w "%{http_code}" htt
 if (apiStatus.stdout.startsWith('2')) ok(`https://…:${port}${backendPath}zones -> ${apiStatus.stdout}`);
 else gap('GAP', `the proxied API answered ${apiStatus.stdout || 'nothing'}`);
 
+if (metadata) {
+  const metaStatus = await ssh(`curl -s -k -o /dev/null -m 15 -w "%{http_code}" https://127.0.0.1:${port}${metadata.path}api/metadata/fip`);
+  if (metaStatus.stdout.startsWith('2')) ok(`https://…:${port}${metadata.path}api/metadata/fip -> ${metaStatus.stdout}`);
+  else gap('GAP', `the proxied metadata service answered ${metaStatus.stdout || 'nothing'}`);
+}
+
 // Everything above was checked from the NAS itself, which proves the server is
 // right and nothing about whether a phone on the sofa can reach it. The name on
 // the certificate usually points at the public address, and a home router will
 // not always route back in from the inside, so check from here too.
 const url = `https://${serverName}:${port}/FIPlay/`;
-const fromHere = await httpStatus(url, 8000);
+// Routing only: the certificate is judged in the preflight, and an expired or
+// mismatched one must not make a working route read as a dead one.
+const fromHere = await (async () => {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), redirect: 'manual', tls: { rejectUnauthorized: false } } as RequestInit);
+    return res.status;
+  } catch {
+    return null;
+  }
+})();
 if (fromHere === null) {
   gap('GAP', `${serverName}:${port} does not answer from this machine`);
   info('The NAS is serving; the address just does not lead back to it from inside');

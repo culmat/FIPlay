@@ -14,7 +14,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { DIST_DIR, ENV, REPO_ROOT, abort, backendCfg, fetchJson, gitInfo, httpStatus, info, joinUrl, ok, phase, requireEnv, requireSsh, runInherit, ssh, summary, waitFor } from './lib';
+import { DIST_DIR, ENV, REPO_ROOT, abort, backendCfg, fetchJson, gitInfo, httpStatus, info, joinUrl, metadataProxyCfg, ok, phase, requireEnv, requireSsh, runInherit, ssh, summary, waitFor } from './lib';
 
 /** The NAS web server is occasionally slow on a file it has just received. */
 const VERIFY_TIMEOUT_MS = 15_000;
@@ -51,7 +51,14 @@ phase('Phase 2: Build');
 if (SKIP_BUILD) {
   info('--skip-build: using existing dist/FIPlay');
 } else {
-  const code = runInherit(['bun', 'run', 'build'], { cwd: REPO_ROOT });
+  // When the metadata service is proxied onto the NAS's own origin, build the
+  // app against that path rather than the absolute http:// address in .env,
+  // which an HTTPS page could not fetch. The absolute address stays in .env
+  // for the tooling that talks to the service directly.
+  const metadata = metadataProxyCfg();
+  const buildEnv = metadata ? { VITE_METADATA_URL: metadata.path.replace(/\/$/, '') } : undefined;
+  if (buildEnv) info(`building with VITE_METADATA_URL=${buildEnv.VITE_METADATA_URL} (same-origin proxy)`);
+  const code = runInherit(['bun', 'run', 'build'], { cwd: REPO_ROOT, env: buildEnv });
   if (code !== 0) abort(`build failed (exit ${code})`);
 }
 if (!existsSync(resolve(DIST_DIR, 'index.html'))) abort(`${DIST_DIR}/index.html missing`);

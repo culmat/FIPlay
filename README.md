@@ -162,6 +162,16 @@ The proxy path is deliberately configured at server level rather than inside the
 host, so it answers over plain HTTP too. One manifest then works either way, and the setup can
 be tested before a certificate is in place.
 
+If your own metadata service runs on the NAS as well, set `FIPLAY_METADATA_PORT` and it is
+proxied onto the same origin under `FIPLAY_METADATA_PATH`, and `bun run deploy` builds the app
+against that path. Otherwise an app served over HTTPS could not fetch from an `http://` service
+on the same box, for the same mixed-content reason as the speaker API.
+
+If the resolver you point the router at is not the router itself, make sure it hands the
+router's own names back to it. A Pi-hole, for instance, does not know the names of your DHCP
+clients, so `nas` and `nas.fritz.box` stop resolving the moment devices switch to it unless it
+forwards that zone and unqualified names to the router.
+
 The last phase checks the address from the machine you run it on, not only from the NAS,
 because those are different questions. A certificate names a public hostname, that hostname
 resolves to your public address, and a home router will not necessarily route a request from
