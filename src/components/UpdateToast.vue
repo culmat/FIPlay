@@ -60,8 +60,10 @@ import { ui } from '@/ui'
   font-size: 0.875rem;
 }
 
+/* Let the sentence wrap on a narrow phone rather than push the buttons off. */
 .toast__text {
-  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.3;
 }
 
 .toast__action {
