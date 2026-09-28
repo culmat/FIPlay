@@ -330,14 +330,16 @@ onBeforeUnmount(() => {
 }
 
 /* Spans the width so a long name can truncate, but lets presses through to
-   the page except on the button itself. */
+   the page except on the button itself. The empty third column matches the
+   button, which keeps the name on the page's centre line. */
 .view__top {
   position: fixed;
   top: calc(var(--safe-top) + 10px);
   left: max(10px, var(--safe-left));
   right: max(10px, var(--safe-right));
   z-index: 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 10px;
   pointer-events: none;
@@ -400,7 +402,8 @@ onBeforeUnmount(() => {
 }
 
 .view__station {
-  min-width: 0;
+  justify-self: center;
+  max-width: 100%;
   padding: 6px 12px;
   font-size: 0.8125rem;
   background: rgba(0, 0, 0, 0.35);
