@@ -197,6 +197,10 @@ speakers at all, so the installed app still plays FIP on the phone. Coming home 
 on the next return to the foreground, or within a minute if it stays open. The About dialog
 shows which it thinks it is, with a button to check again.
 
+With no network at all (airplane mode) the app says so in a toast and stops pretending: a
+tap on play falls straight back, the phone's own stream stops, speakers play on since they
+have their own connection, and the track info picks up again when the network returns.
+
 If the resolver you point the router at is not the router itself, make sure it hands the
 router's own names back to it. A Pi-hole, for instance, does not know the names of your DHCP
 clients, so `<nas>` and `<nas>.fritz.box` stop resolving the moment devices switch to it unless it

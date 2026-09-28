@@ -1,4 +1,4 @@
-import { timeoutSignal } from './net';
+import { net, timeoutSignal } from './net';
 
 // A backend that is out of reach would otherwise hold every request until the
 // browser's own connect timeout, most of a minute on a phone. The first /zones
@@ -20,6 +20,8 @@ export default class Backend {
         this.backendURL = this.backendURLroot + path + '/';
     }
     request(url, timeoutMs = TIMEOUT_MS) {
+        // Without any network there is nothing to wait for.
+        if (!net.online) return Promise.reject(new Error('No connection'));
         return fetch(url, { signal: timeoutSignal(timeoutMs) });
     }
     async list() {

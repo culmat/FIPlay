@@ -1,3 +1,16 @@
+import { reactive } from 'vue'
+
+/**
+ * Whether the browser has a network at all.
+ *
+ * `navigator.onLine` is only trustworthy in one direction: false means airplane
+ * mode or no interface, true means nothing more than "there is an interface".
+ * That one direction is enough to stop pretending to play, and to say why.
+ */
+export const net = reactive({ online: navigator.onLine !== false })
+window.addEventListener('online', () => { net.online = true })
+window.addEventListener('offline', () => { net.online = false })
+
 /**
  * An AbortSignal that fires after `ms`.
  *

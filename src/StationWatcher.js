@@ -133,6 +133,7 @@ export default class StationWatcher {
      * still playable: the stream URL is derived from its name.
      */
     giveUp() {
+        this.gaveUp = true;
         this.updateStation({
             stationName: this.stationName,
             stationLabel: this.stationLabel,
@@ -144,6 +145,13 @@ export default class StationWatcher {
                 media: { sources: [] }
             }
         });
+    }
+    /** The network is back: a watcher that had given up asks again. */
+    wake() {
+        this.errorCount = 0;
+        if (!this.gaveUp) return;
+        this.gaveUp = false;
+        this.getStationInfo();
     }
     getStationInfo() {
         fetchMetadata(this.stationName)

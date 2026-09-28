@@ -21,6 +21,7 @@ import BrowserPlayer from './BrowserPlayer';
 import { bindMediaSession } from './mediaSession';
 import { registerServiceWorker } from './pwa';
 import { home, start as watchHome } from './home';
+import { net } from './net';
 const browser = Bowser.getParser(window.navigator.userAgent);
 
 const app = createApp(App)
@@ -62,6 +63,7 @@ const stations = {
 }
 
 const players = {}
+const watchers = []
 
 // The stream URLs are https://icecast.radiofrance.fr/<slug>-<quality>.<ext>,
 // where <slug> is the station name without underscores. That lets a URL be
@@ -95,7 +97,24 @@ function addPlayer(player, name, volume = 100, kind = 'browser') {
 }
 
 const browserPlayerName = `${browser.getBrowserName()} / ${browser.getOSName()}`;
-addPlayer(new BrowserPlayer(), browserPlayerName);
+addPlayer(new BrowserPlayer({ onError: () => stopBrowserPlayer('the stream died') }), browserPlayerName);
+
+/**
+ * Stop saying the browser is playing when it cannot be.
+ *
+ * Airplane mode, or a WLAN that dropped, ends the phone's own stream; the
+ * speakers have their own connection and play on. The correction is observed,
+ * not requested, so it must not be echoed back as a pause command.
+ */
+function stopBrowserPlayer(why) {
+    const state = uiStore.players.find(p => p.title === browserPlayerName);
+    if (!state || !state.playing) return;
+    console.debug(`${browserPlayerName}: stopped, ${why}`);
+    state.playing = false;
+    syncStateSnapshot();
+    players[browserPlayerName].pause();
+}
+window.addEventListener('offline', () => stopBrowserPlayer('no connection'));
 
 // Lock-screen artwork and play/pause for the browser player.
 bindMediaSession(uiStore, stationStore, browserPlayerName);
@@ -114,9 +133,14 @@ for (const [stationName, stationLabel] of Object.entries(stations)) {
             media: { sources: [] }
         }
     });
-    new StationWatcher(0, stationName, stationLabel, stationStore.updateStation);
+    watchers.push(new StationWatcher(0, stationName, stationLabel, stationStore.updateStation));
     //if(stationName == 'fip_pop') break
 }
+
+// Airplane mode makes every watcher give up within seconds; the network coming
+// back is their cue to ask again, or the cards would say "No track info" until
+// the next launch.
+window.addEventListener('online', () => watchers.forEach(w => w.wake()));
 
 const backends = []
 
@@ -373,7 +397,8 @@ function send(title, command) {
     Promise.resolve()
         .then(command)
         .catch(async firstError => {
-            if (player instanceof BackendPlayer) {
+            // A rescan cannot help without a network, and the answer is known.
+            if (player instanceof BackendPlayer && net.online) {
                 await player.backend.rescan();
                 try {
                     await command();

@@ -24,6 +24,7 @@
     <OutputSheet />
     <AboutDialog />
     <UpdateToast />
+    <OfflineToast />
   </div>
 </template>
 
