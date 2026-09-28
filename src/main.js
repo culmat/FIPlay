@@ -343,8 +343,11 @@ router.afterEach((to, from) => {
     // how a page load is told apart from moving around inside the app.
     const pageLoad = from.matched.length == 0;
 
+    // Nor is a change of the fragment or the query alone: that is the
+    // artwork-only view coming or going on a page that is already open (see
+    // immersive.js), or a marker being carried along. Only another page is.
     if (!pageLoad &&
-        to.fullPath != from.fullPath &&
+        to.path != from.path &&
         to.query.play != 'false' &&
         stationName) {
         console.debug(`Now playing: ${stationName}`);
@@ -353,10 +356,12 @@ router.afterEach((to, from) => {
     if (to.query.play == 'false') {
         // Drop the marker without going through the router, so this does not
         // start playback. Editing the string would corrupt the other
-        // parameters, whose order is not fixed.
+        // parameters, whose order is not fixed. The router's own state stays
+        // on the entry: it says where back leads, which the artwork-only view
+        // relies on to leave the way it came.
         const url = new URL(window.location.href);
         url.searchParams.delete('play');
-        history.replaceState(null, '', url);
+        history.replaceState(history.state, '', url);
     }
 })
 
@@ -473,7 +478,9 @@ async function syncSpeakers() {
             const after = uiStore.station?.name;
             const route = router.currentRoute.value;
             if (after && after !== before && route.params.stationName === before) {
-                router.replace({ path: '/station/' + after, query: { ...route.query, play: 'false' } });
+                // The fragment comes along: whoever left the artwork up on
+                // this screen wants the new station's artwork, not its controls.
+                router.replace({ path: '/station/' + after, query: { ...route.query, play: 'false' }, hash: route.hash });
             }
         }
     } finally {

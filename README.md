@@ -160,6 +160,13 @@ An installed app launches at the manifest's `start_url`, which carries no query 
 would come up without speakers. `bun run deploy` therefore stamps `?backend=` from your `.env`
 into the manifest it uploads; the GitHub Pages build has no backend and stays as it is.
 
+A station's artwork alone, with no controls, is the `#art` fragment of its address: tap the
+cover, or the expand button beside the station name, to get there, and tap anywhere to come
+back. `/FIPlay/station/fip_jazz#art` opens it directly, for a phone propped up beside the
+speakers. Entering it is one step of history, so the back gesture leaves the artwork before it
+leaves the station. On a laptop the browser goes fullscreen as well; an iPhone, which offers no
+fullscreen for pages, morphs the cover into place instead.
+
 ### `bun run nas:https`
 
 Installing the app from the NAS needs HTTPS, and plain HTTP is what the NAS serves by

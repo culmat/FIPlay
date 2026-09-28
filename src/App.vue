@@ -8,7 +8,6 @@
         <Transition
           name="page"
           mode="out-in"
-          @after-leave="leftPage"
         >
           <component
             :is="Component"
@@ -54,18 +53,6 @@ const showBar = computed(() => {
   const playing = uiStore.station?.name
   return !open || (!!playing && playing !== open)
 })
-
-/**
- * The artwork-only mode ends with the station page.
- *
- * Only once the page has faded out: the route changes while the old page is
- * still leaving, and resetting the mode then would put every control back on
- * a page that is on its way out. The speakers moving to another station
- * replaces one station page with another and keeps the param, so that survives.
- */
-function leftPage () {
-  if (!route.params.stationName) ui.immersive = false
-}
 
 watchEffect(() => {
   const name = uiStore.station?.name
