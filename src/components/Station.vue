@@ -16,16 +16,25 @@
       <div class="view__scrim" />
     </div>
 
-    <button
-      class="btn btn--icon btn--glass view__back chrome"
-      aria-label="Back to stations"
-      @click="router.push('/')"
-    >
-      <Icon
-        :path="mdiArrowLeft"
-        :size="22"
-      />
-    </button>
+    <!-- The station name sits beside the way back to the list it belongs to,
+         which also leaves the space under the artwork to the track. -->
+    <div class="view__top chrome">
+      <button
+        class="btn btn--icon btn--glass view__back"
+        aria-label="Back to stations"
+        @click="router.push('/')"
+      >
+        <Icon
+          :path="mdiArrowLeft"
+          :size="22"
+        />
+      </button>
+
+      <span
+        v-if="station"
+        class="pill view__station"
+      ><span class="truncate">{{ station.stationLabel }}</span></span>
+    </div>
 
     <div
       v-if="!station"
@@ -59,8 +68,6 @@
           <span>{{ emoji }}</span>
         </div>
       </div>
-
-      <span class="pill view__station chrome">{{ station.stationLabel }}</span>
 
       <h1 class="view__title clamp-2">
         {{ title || 'Live' }}
@@ -322,11 +329,23 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-.view__back {
+/* Spans the width so a long name can truncate, but lets presses through to
+   the page except on the button itself. */
+.view__top {
   position: fixed;
   top: calc(var(--safe-top) + 10px);
   left: max(10px, var(--safe-left));
+  right: max(10px, var(--safe-right));
   z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.view__back {
+  flex: none;
+  pointer-events: auto;
 }
 
 .view__missing {
@@ -381,15 +400,17 @@ onBeforeUnmount(() => {
 }
 
 .view__station {
-  margin-top: 22px;
-  background: var(--on-art-fill);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  min-width: 0;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--on-art);
 }
 
 .view__title {
-  margin-top: 14px;
+  margin-top: 22px;
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.25;
