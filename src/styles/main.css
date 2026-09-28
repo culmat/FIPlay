@@ -405,6 +405,22 @@ dialog.sheet[open] {
   }
 }
 
+/* --- view transitions ---------------------------------------------------- */
+
+/* The station artwork morphs between its place on the page and the middle of
+   the screen. These pseudo-elements hang off the root, out of reach of a
+   component's scoped styles. The reduced-motion rule below does not reach
+   them either; the script skips the transition instead. */
+::view-transition-group(art) {
+  animation-duration: 360ms;
+  animation-timing-function: var(--ease);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+}
+
 /* --- motion ------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {

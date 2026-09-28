@@ -19,6 +19,7 @@ import Bowser from "bowser";
 import BackendPlayer from './BackendPlayer';
 import BrowserPlayer from './BrowserPlayer';
 import { bindMediaSession } from './mediaSession';
+import { bindImmersive } from './immersive';
 import { registerServiceWorker } from './pwa';
 import { home, start as watchHome } from './home';
 import { net } from './net';
@@ -118,6 +119,9 @@ window.addEventListener('offline', () => stopBrowserPlayer('no connection'));
 
 // Lock-screen artwork and play/pause for the browser player.
 bindMediaSession(uiStore, stationStore, browserPlayerName);
+
+// Fullscreen and a screen that stays on, for the page that is only artwork.
+bindImmersive(uiStore);
 
 
 for (const [stationName, stationLabel] of Object.entries(stations)) {

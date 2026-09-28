@@ -1,5 +1,8 @@
 <template>
-  <div class="view">
+  <div
+    class="view"
+    :class="{ 'view--immersive': ui.immersive, 'view--paused': !playing }"
+  >
     <!-- The artwork is the backdrop: blurred hard, dimmed, and cross-faded when
          the track changes, so the page takes its colour from what is playing. -->
     <div class="view__bg">
@@ -17,7 +20,8 @@
     </div>
 
     <!-- The station name sits beside the way back to the list it belongs to,
-         which also leaves the space under the artwork to the track. -->
+         which also leaves the space under the artwork to the track. The slot
+         on the other side is the way into the artwork alone. -->
     <div class="view__top chrome">
       <button
         class="btn btn--icon btn--glass view__back"
@@ -34,6 +38,18 @@
         v-if="station"
         class="pill view__station"
       ><span class="truncate">{{ station.stationLabel }}</span></span>
+
+      <button
+        v-if="art"
+        class="btn btn--icon btn--glass view__expand"
+        aria-label="Show artwork only"
+        @click="setImmersive(true)"
+      >
+        <Icon
+          :path="mdiArrowExpand"
+          :size="22"
+        />
+      </button>
     </div>
 
     <div
@@ -43,31 +59,47 @@
       <p>Unknown station.</p>
     </div>
 
+    <!-- With the artwork alone this fills the screen, so a tap on it anywhere
+         is the way back. The handler is here rather than on the page root
+         because iOS only turns a tap into a click on an element that listens. -->
     <div
       v-else
       class="view__body"
+      @click="leave"
     >
-      <div class="view__art chrome">
-        <img
-          v-if="art"
-          class="view__art-img"
-          :class="{ 'view__art-img--in': loaded }"
-          :src="`${art}/600x600`"
-          :srcset="`${art}/400x400 400w, ${art}/600x600 600w, ${art}/800x800 800w`"
-          sizes="min(78vw, 420px)"
-          :alt="`Cover art for ${title || station.stationLabel}`"
-          fetchpriority="high"
-          decoding="async"
-          draggable="false"
-          @load="loaded = true"
-        >
-        <div
-          v-else
-          class="view__art-fallback"
-        >
-          <span>{{ emoji }}</span>
-        </div>
-      </div>
+      <!-- The frame is a button: a tap on the art is the way into the artwork
+           alone, and out again. Not a .btn, whose press feedback owns transform
+           (see the controls below), and spans inside because a button holds
+           phrasing content only. -->
+      <button
+        ref="artBtn"
+        class="view__art-btn"
+        :aria-label="ui.immersive ? 'Show controls' : 'Show artwork only'"
+        :disabled="!art"
+        @click.stop="setImmersive(!ui.immersive)"
+      >
+        <span class="view__art chrome">
+          <img
+            v-if="art"
+            class="view__art-img"
+            :class="{ 'view__art-img--in': loaded }"
+            :src="`${art}/600x600`"
+            :srcset="artSrcset"
+            :sizes="artSizes"
+            :alt="`Cover art for ${title || station.stationLabel}`"
+            fetchpriority="high"
+            decoding="async"
+            draggable="false"
+            @load="loaded = true"
+          >
+          <span
+            v-else
+            class="view__art-fallback"
+          >
+            <span>{{ emoji }}</span>
+          </span>
+        </span>
+      </button>
 
       <h1 class="view__title clamp-2">
         {{ title || 'Live' }}
@@ -151,8 +183,9 @@
 </template>
 
 <script setup>
-import { mdiArrowLeft, mdiLaptop, mdiPause, mdiPlay, mdiSpeaker } from '@mdi/js'
+import { mdiArrowExpand, mdiArrowLeft, mdiLaptop, mdiPause, mdiPlay, mdiSpeaker } from '@mdi/js'
 
+import { setImmersive } from '@/immersive'
 import { isIOS } from '@/platform'
 import { STREAM_DELAY_MS } from '@/StationWatcher'
 import { useStationStore } from '@/stores/stationStore'
@@ -169,10 +202,25 @@ const uiStore = useUIStore()
 const playStation = inject('playStation')
 
 const loaded = ref(false)
+const artBtn = ref(null)
 
 const station = computed(() => stationStore.stations[props.stationName] || null)
 const now = computed(() => station.value?.now || null)
 const art = computed(() => now.value?.visuals?.card?.src || '')
+
+// The 1000 source is offered only for the artwork alone. Offered always, a
+// retina phone would take it for the 420px layout too (the smallest candidate
+// that covers the density wins), adding half again to every cover. Alone,
+// that phone needs about 700w and fetches nothing new; a retina laptop fetches
+// the 1000 and keeps showing the 600 until it lands.
+const artSrcset = computed(() => {
+  const base = `${art.value}/400x400 400w, ${art.value}/600x600 600w, ${art.value}/800x800 800w`
+  return ui.immersive ? `${base}, ${art.value}/1000x1000 1000w` : base
+})
+
+// The same expressions as the two widths of .view__art below, so the browser
+// fetches the size it is about to draw.
+const artSizes = computed(() => (ui.immersive ? 'min(90vw, 90dvh, 1000px)' : 'min(78vw, 420px)'))
 const title = computed(() => now.value?.firstLine?.title || '')
 const artist = computed(() => now.value?.secondLine?.title || '')
 const emoji = computed(() => station.value?.stationLabel?.trim().split(' ')[0] || '📻')
@@ -203,6 +251,22 @@ const solo = computed(() => uiStore.soloPlayer)
 const showVolume = computed(() => solo.value && !(solo.value.kind === 'browser' && isIOS))
 
 watch(art, () => { loaded.value = false })
+
+// --- artwork alone ----------------------------------------------------------
+
+function leave () {
+  if (ui.immersive) setImmersive(false)
+}
+
+const onKey = event => {
+  if (event.key === 'Escape') leave()
+}
+
+// The button that was pressed to get here vanishes with the rest of the
+// controls, so the art takes the focus: Enter or Space then brings them back.
+watch(() => ui.immersive, on => {
+  if (on) nextTick(() => artBtn.value?.focus({ preventScroll: true }))
+})
 
 /**
  * Play this station, or pause what is already this station.
@@ -277,11 +341,13 @@ const onVisibility = () => (document.hidden ? stopClock() : startClock())
 onMounted(() => {
   startClock()
   document.addEventListener('visibilitychange', onVisibility)
+  document.addEventListener('keydown', onKey)
 })
 
 onBeforeUnmount(() => {
   stopClock()
   document.removeEventListener('visibilitychange', onVisibility)
+  document.removeEventListener('keydown', onKey)
 })
 </script>
 
@@ -345,7 +411,8 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.view__back {
+.view__back,
+.view__expand {
   flex: none;
   pointer-events: auto;
 }
@@ -370,13 +437,35 @@ onBeforeUnmount(() => {
   padding: calc(var(--safe-top) + 68px) max(24px, var(--safe-right)) 24px max(24px, var(--safe-left));
 }
 
+/* The button around the art has no chrome of its own (the reset in main.css
+   sees to that); the art is what shows, and the focus ring goes on it too. */
+.view__art-btn {
+  display: block;
+}
+
+.view__art-btn:disabled {
+  cursor: default;
+}
+
+.view__art-btn:focus-visible {
+  outline: none;
+}
+
+.view__art-btn:focus-visible .view__art {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Named so the browser can morph it between its two places; see main.css. */
 .view__art {
+  display: block;
   width: min(78vw, 420px);
   aspect-ratio: 1;
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface-2);
   box-shadow: var(--shadow-art);
+  view-transition-name: art;
 }
 
 .view__art-img {
@@ -385,6 +474,8 @@ onBeforeUnmount(() => {
   object-fit: cover;
   opacity: 0;
   transition: opacity 400ms var(--ease);
+  /* No "save image" sheet on a long press; here a long press is a slow tap. */
+  -webkit-touch-callout: none;
 }
 
 .view__art-img--in {
@@ -523,6 +614,71 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
   color: var(--text-3);
   margin-bottom: 3px;
+}
+
+/* --- artwork alone ------------------------------------------------------- */
+
+.view--immersive .view__top,
+.view--immersive .view__body > :not(.view__art-btn) {
+  display: none;
+}
+
+/* Fills the screen, so a tap anywhere is the way back; the pointer says so.
+   The page keeps its own height underneath: while it slides in, its transform
+   makes it the containing block of everything fixed, and a page of no height
+   would leave the backdrop nothing to fill. */
+.view--immersive .view__body {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  max-width: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* The same expression as artSizes in the script. */
+.view--immersive .view__art {
+  width: min(90vw, 90dvh, 1000px);
+}
+
+.view--immersive .view__art-fallback {
+  font-size: 25vmin;
+}
+
+/* The backdrop breathes: a slow swell of the container, and of the scrim over
+   it. The container, not the blurred image inside it: that image is the
+   cross-fade above, which times itself by the longest animation on the
+   element and would hold every track change for a whole breath. Transform and
+   opacity only, so the blur is not recomputed every frame. Rest is the first
+   keyframe, so the reduced-motion rule in main.css (one iteration, no time)
+   leaves it still. There is no text to keep legible here, so the scrim is
+   flat rather than running to black at the bottom. */
+.view--immersive .view__bg {
+  animation: breathe 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+.view--immersive .view__scrim {
+  background: rgba(11, 11, 15, 0.45);
+  animation: swell 9s ease-in-out infinite;
+}
+
+/* A still backdrop says the music is too. */
+.view--paused .view__bg,
+.view--paused .view__scrim {
+  animation-play-state: paused;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@keyframes swell {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }
 
 @media (prefers-reduced-motion: reduce) {

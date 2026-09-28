@@ -1,13 +1,14 @@
 <template>
   <div
     class="app"
-    :class="{ 'app--bar': showBar }"
+    :class="{ 'app--bar': showBar, 'app--immersive': ui.immersive }"
   >
     <main class="app__main">
       <router-view v-slot="{ Component, route: current }">
         <Transition
           name="page"
           mode="out-in"
+          @after-leave="leftPage"
         >
           <component
             :is="Component"
@@ -31,6 +32,7 @@
 <script setup>
 import { useStationStore } from '@/stores/stationStore'
 import { useUIStore } from '@/stores/uiStore'
+import { ui } from '@/ui'
 
 const route = useRoute()
 const uiStore = useUIStore()
@@ -43,12 +45,27 @@ const stationStore = useStationStore()
  * redundant and would only cover the artwork. It stays, though, when a
  * different station is playing elsewhere: that is exactly when you need to know
  * what the speakers are doing while you browse.
+ *
+ * Not while the artwork is the whole screen, though: nothing goes over that.
  */
 const showBar = computed(() => {
+  if (ui.immersive) return false
   const open = route.params.stationName
   const playing = uiStore.station?.name
   return !open || (!!playing && playing !== open)
 })
+
+/**
+ * The artwork-only mode ends with the station page.
+ *
+ * Only once the page has faded out: the route changes while the old page is
+ * still leaving, and resetting the mode then would put every control back on
+ * a page that is on its way out. The speakers moving to another station
+ * replaces one station page with another and keeps the param, so that survives.
+ */
+function leftPage () {
+  if (!route.params.stationName) ui.immersive = false
+}
 
 watchEffect(() => {
   const name = uiStore.station?.name
@@ -73,6 +90,11 @@ watchEffect(() => {
 /* Keep the last row of content clear of the bar. */
 .app--bar .app__main {
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom) + 16px);
+}
+
+/* Nothing scrolls under the artwork, so nothing needs clearance. */
+.app--immersive .app__main {
+  padding-bottom: 0;
 }
 
 .page-enter-active,
