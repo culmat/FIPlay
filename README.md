@@ -17,7 +17,7 @@ thing that knows about both.
 
 | Service | What it provides | How FIPlay finds it |
 | --- | --- | --- |
-| [fip-metadata-server](https://github.com/culmat/fip-metadata-server) | Now-playing track, artist and cover art per station. Go, deployed on fly.io | hardcoded public URL in `src/StationWatcher.js` |
+| [fip-metadata-server](https://github.com/culmat/fip-metadata-server) | Now-playing track, artist and cover art per station. Go, deployed on fly.io | `src/metadata.js`: the build's own service (`VITE_METADATA_URL`), the public one as fallback |
 | [PyRaumfeld](https://github.com/culmat/PyRaumfeld) | HTTP API over the Raumfeld system: list zones and rooms, set volume, play a stream URL | the `?backend=` query parameter, read in `src/main.js` |
 
 ```
@@ -190,6 +190,13 @@ proxied onto the same origin under `FIPLAY_METADATA_PATH`, and `bun run deploy` 
 against that path. Otherwise an app served over HTTPS could not fetch from an `http://` service
 on the same box, for the same mixed-content reason as the speaker API.
 
+Away from home neither service is reachable: the name resolves to an address that never
+answers. The app notices within five seconds (`src/home.js` probes its own `version.json`),
+remembers it, takes the track info from the public service and does not look for the
+speakers at all, so the installed app still plays FIP on the phone. Coming home it notices
+on the next return to the foreground, or within a minute if it stays open. The About dialog
+shows which it thinks it is, with a button to check again.
+
 If the resolver you point the router at is not the router itself, make sure it hands the
 router's own names back to it. A Pi-hole, for instance, does not know the names of your DHCP
 clients, so `<nas>` and `<nas>.fritz.box` stop resolving the moment devices switch to it unless it
@@ -244,3 +251,6 @@ done together with a coding agent. Most of it applies beyond this project.
   backend's `/update`, which rescans the Raumfeld network and can take 45 seconds, followed by
   a first `/zones` that can take another 15. Later calls are fast. Until that chain finishes
   the output picker offers the browser player only.
+- **Speakers found at home stay listed after leaving.** Once the home network is out of
+  reach a tap on one fails after 20 seconds and the button falls back; the next launch
+  lists the browser player only.

@@ -1,3 +1,12 @@
+import { timeoutSignal } from './net';
+
+// A backend that is out of reach would otherwise hold every request until the
+// browser's own connect timeout, most of a minute on a phone. The first /zones
+// after a cold start takes about 15 s, so leave room for that; a rescan
+// (/update) walks the whole Raumfeld network and takes about 45.
+const TIMEOUT_MS = 20000;
+const RESCAN_TIMEOUT_MS = 60000;
+
 export default class Backend {
     constructor(backendURL, path) {
         this.backendURLroot = backendURL.endsWith('/') ? backendURL : backendURL + '/';
@@ -10,9 +19,12 @@ export default class Backend {
         }
         this.backendURL = this.backendURLroot + path + '/';
     }
+    request(url, timeoutMs = TIMEOUT_MS) {
+        return fetch(url, { signal: timeoutSignal(timeoutMs) });
+    }
     async list() {
         try {
-            const response = await fetch(this.listPathURL);
+            const response = await this.request(this.listPathURL);
             return (await response.json()).data;
         } catch (error) {
             console.error('Error :', error);
@@ -23,7 +35,7 @@ export default class Backend {
         if (!Backend.updated) {
             Backend.updated = true;
             try {
-                await fetch(this.backendURLroot + 'update');
+                await this.request(this.backendURLroot + 'update', RESCAN_TIMEOUT_MS);
                 console.debug('Backend rescan finished');
             } catch (error) {
                 console.error('Error :', error);
@@ -42,7 +54,7 @@ export default class Backend {
      */
     async rescan() {
         try {
-            await fetch(this.backendURLroot + 'update');
+            await this.request(this.backendURLroot + 'update', RESCAN_TIMEOUT_MS);
         } catch (error) {
             console.debug('Backend rescan request failed:', error);
         }
@@ -50,7 +62,7 @@ export default class Backend {
     }
     async getVolume(udn) {
         try {
-            const response = await fetch(this.backendURL + udn + '/volume');
+            const response = await this.request(this.backendURL + udn + '/volume');
             return (await response.json()).data;
         } catch (error) {
             console.error('Error getting volume:', error);
@@ -59,7 +71,7 @@ export default class Backend {
     }
     async setVolume(udn, volume) {
         try {
-            const response = await fetch(this.backendURL + udn + '/volume/' + volume);
+            const response = await this.request(this.backendURL + udn + '/volume/' + volume);
             return (await response.json()).data;
         } catch (error) {
             console.error('Error setting volume:', error);
@@ -74,7 +86,7 @@ export default class Backend {
             }
             url = url || this.url;
             this.url = url;
-            const response = await fetch(this.backendURL + udn + '/play/' + url);
+            const response = await this.request(this.backendURL + udn + '/play/' + url);
             return (await response.json()).data;
         } catch (error) {
             console.error('Error playing:', error);
@@ -84,7 +96,7 @@ export default class Backend {
 
     async play(udn) {
         try {
-            const response = await fetch(this.backendURL + udn + '/play');
+            const response = await this.request(this.backendURL + udn + '/play');
             return (await response.json()).data;
         } catch (error) {
             console.error('Error playing:', error);
@@ -94,7 +106,7 @@ export default class Backend {
 
     async pause(udn) {
         try {
-            const response = await fetch(this.backendURL + udn + '/pause');
+            const response = await this.request(this.backendURL + udn + '/pause');
             return (await response.json()).data;
         } catch (error) {
             console.error('Error pausing:', error);
@@ -104,7 +116,7 @@ export default class Backend {
 
     async stop(udn) {
         try {
-            const response = await fetch(this.backendURL + udn + '/stop');
+            const response = await this.request(this.backendURL + udn + '/stop');
             return (await response.json()).data;
         } catch (error) {
             console.error('Error pausing:', error);
@@ -120,7 +132,7 @@ export default class Backend {
      */
     async currentURL(udn) {
         try {
-            const response = await fetch(this.backendURL + udn + '/media_info');
+            const response = await this.request(this.backendURL + udn + '/media_info');
             if (!response.ok) return null;
             const info = (await response.json()).data;
             return (info && info[0] && info[0].CurrentURI) || null;
@@ -133,7 +145,7 @@ export default class Backend {
     /** 'PLAYING', 'PAUSED_PLAYBACK', 'STOPPED', or null when unavailable. */
     async transportState(udn) {
         try {
-            const response = await fetch(this.backendURL + udn + '/transport_info');
+            const response = await this.request(this.backendURL + udn + '/transport_info');
             if (!response.ok) return null;
             const state = (await response.json()).data;
             return (state && state[0]) || null;

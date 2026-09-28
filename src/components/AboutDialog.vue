@@ -134,6 +134,18 @@
           Restart to update
         </button>
       </p>
+      <p
+        v-if="home.enabled"
+        class="about__version"
+      >
+        Home network: {{ home.mode === 'home' ? 'reachable' : 'out of reach, track info from the public service, speakers unavailable' }}
+        <button
+          class="about__restart"
+          @click="probe"
+        >
+          Check again
+        </button>
+      </p>
     </div>
   </dialog>
 </template>
@@ -141,6 +153,7 @@
 <script setup>
 import { mdiClose, mdiGithub, mdiOpenInNew, mdiQrcode, mdiRadio, mdiScaleBalance } from '@mdi/js'
 
+import { home, probe } from '@/home'
 import { applyUpdate } from '@/pwa'
 import { ui } from '@/ui'
 
@@ -215,7 +228,9 @@ onMounted(sync)
 /** Written by `bun run deploy`; absent on the dev server and on GitHub Pages. */
 async function readVersion () {
   try {
-    const res = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: 'no-store' })
+    // The base has no trailing slash in a production build; see shareUrl.
+    const base = import.meta.env.BASE_URL.replace(/\/?$/, '/')
+    const res = await fetch(`${base}version.json`, { cache: 'no-store' })
     if (!res.ok) return ''
     const info = await res.json()
     return info.short ? `${info.short}${info.dirty ? '-dirty' : ''}` : ''

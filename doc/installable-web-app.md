@@ -37,6 +37,11 @@ Some consequences that are easy to miss:
 - Precache only the shell. If the app's whole purpose is a live network resource (a radio,
   a camera), there is nothing meaningful to serve offline, and runtime caching rules are a
   place to get stale data wrong. Cross-origin requests bypass a precache-only worker anyway.
+- A precached shell opens away from home too, so decide what the app does when its home
+  services are out of reach. There is no API that says "WLAN is off", and a request to an
+  address that never answers waits for the browser's connect timeout, most of a minute on a
+  phone: the page looks broken. Probe the home server with a fixed timeout, fall back to
+  something public, and remember the answer so the next launch does not wait even that long.
 - Do not leave updates to the worker's default either. By itself a new version waits until
   every window is closed. On Firefox for Android that never happens: swiping the app away does
   not end its process, and a browser tab of the same site counts as a window, so the old

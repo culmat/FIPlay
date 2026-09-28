@@ -8,7 +8,7 @@ import { registerPlugins } from '@/plugins'
 import App from './App.vue'
 
 // Composables
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { useStationStore } from '@/stores/stationStore';
 import { useUIStore } from '@/stores/uiStore';
 import router from './router'
@@ -20,6 +20,7 @@ import BackendPlayer from './BackendPlayer';
 import BrowserPlayer from './BrowserPlayer';
 import { bindMediaSession } from './mediaSession';
 import { registerServiceWorker } from './pwa';
+import { home, start as watchHome } from './home';
 const browser = Bowser.getParser(window.navigator.userAgent);
 
 const app = createApp(App)
@@ -31,6 +32,10 @@ registerPlugins(app)
 app.provide('playStation', playStation)
 
 app.mount('#app')
+
+// Is the home network reachable? Decides whether the speakers are looked for
+// at all, and which metadata service answers first; see home.js.
+watchHome();
 
 // Registering needs a secure origin, which a plain http LAN address is not.
 // A new version applies itself unless this browser is playing; see pwa.js.
@@ -120,6 +125,7 @@ const backends = []
 // than silently losing the speakers on the next navigation.
 let backendURL = null
 let discoveryStarted = false
+let discoveryPending = false
 
 /**
  * Register a player for every zone and room the backend reports.
@@ -165,6 +171,31 @@ function startDiscovery(url) {
         .catch(error => console.debug('Backend rescan failed:', error));
 }
 
+/**
+ * Start speaker discovery once, and only while the home network is reachable.
+ *
+ * Away from home every backend call would just time out, so discovery waits
+ * for the mode to come back; arriving home with the app open then brings the
+ * speakers in without a relaunch. Guarded synchronously: discovery takes a
+ * while, and without this every navigation made in the meantime started a
+ * second, competing round.
+ */
+function ensureDiscovery(url) {
+    if (discoveryStarted || discoveryPending) return;
+    if (home.mode === 'home') {
+        discoveryStarted = true;
+        startDiscovery(url);
+        return;
+    }
+    discoveryPending = true;
+    const stop = watch(() => home.mode, mode => {
+        if (mode !== 'home') return;
+        stop();
+        discoveryPending = false;
+        ensureDiscovery(url);
+    });
+}
+
 router.beforeEach((to, from, next) => {
     if (to.query.backend) {
         backendURL = to.query.backend
@@ -172,22 +203,22 @@ router.beforeEach((to, from, next) => {
         next({ path: to.path, query: { ...to.query, backend: backendURL }, hash: to.hash, replace: true })
         return
     }
-    // Guarded synchronously: discovery takes a while, and without this every
-    // navigation made in the meantime started a second, competing round.
-    if (!discoveryStarted && to.query.backend) {
-        discoveryStarted = true;
-        startDiscovery(to.query.backend);
-    }
+    if (to.query.backend) ensureDiscovery(to.query.backend);
     next();
 });
 
-/** Wait briefly for a speaker to be discovered, while none is known yet. */
+/**
+ * Wait briefly for a speaker to be discovered, while none is known yet.
+ *
+ * Not away from home: none will come, and the tap should play at once.
+ */
 function waitForSpeaker(timeoutMs = 4000) {
-    if (Object.values(players).some(p => p instanceof BackendPlayer)) return Promise.resolve();
+    const found = () => Object.values(players).some(p => p instanceof BackendPlayer);
+    if (found() || home.mode !== 'home') return Promise.resolve();
     return new Promise(resolve => {
         const started = Date.now();
         const check = () => {
-            if (Object.values(players).some(p => p instanceof BackendPlayer)) resolve();
+            if (found() || home.mode !== 'home') resolve();
             else if (Date.now() - started > timeoutMs) resolve();
             else setTimeout(check, 100);
         };
@@ -378,7 +409,7 @@ const quietUntil = {};
 let syncing = false;
 
 async function syncSpeakers() {
-    if (syncing || document.hidden) return;
+    if (syncing || document.hidden || home.mode !== 'home') return;
     syncing = true;
     try {
         for (const [title, player] of Object.entries(players)) {
