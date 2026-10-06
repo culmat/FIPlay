@@ -26,7 +26,7 @@
       <button
         class="btn btn--icon btn--glass view__back"
         aria-label="Back to stations"
-        @click="router.push('/')"
+        @click="leaveToList()"
       >
         <Icon
           :path="mdiArrowLeft"
@@ -185,6 +185,7 @@
 <script setup>
 import { mdiArrowExpand, mdiArrowLeft, mdiLaptop, mdiPause, mdiPlay, mdiSpeaker } from '@mdi/js'
 
+import { leaveToList } from '@/back'
 import { setImmersive } from '@/immersive'
 import { isIOS } from '@/platform'
 import { STREAM_DELAY_MS } from '@/StationWatcher'
@@ -196,7 +197,6 @@ const props = defineProps({
   stationName: { type: String, required: true },
 })
 
-const router = useRouter()
 const stationStore = useStationStore()
 const uiStore = useUIStore()
 const playStation = inject('playStation')

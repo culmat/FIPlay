@@ -19,7 +19,8 @@ router.onError((err, to) => {
     if (!localStorage.getItem('fiplay:dynamic-reload')) {
       console.log('Reloading page to fix dynamic import error')
       localStorage.setItem('fiplay:dynamic-reload', 'true')
-      location.assign(to.fullPath)
+      // fullPath is relative to the router's base; href carries it.
+      location.assign(router.resolve(to).href)
     } else {
       console.error('Dynamic import error, reloading page did not fix it', err)
     }

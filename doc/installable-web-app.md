@@ -61,6 +61,20 @@ Some consequences that are easy to miss:
 - If the app is served from more than one place (a public host and a LAN one), the manifest
   can differ per copy: stamp deploy-specific values such as `start_url` query parameters at
   deploy time rather than committing them.
+- The phone's back button is the installed app's only navigation, and it works on the page's
+  history. When that runs out, Firefox for Android does not close the app: the window stays,
+  empty and dead, and the page is never asked. So in standalone mode keep one entry under the
+  first page (FIPlay uses a `#base` fragment on the launch route, see `src/back.js`) and put
+  the first page back on top whenever back lands on it. Back on the first page then stays
+  there, and back from a page the app opened by itself goes home. `(display-mode: standalone)`
+  tells the installed app from a tab: Firefox applies the manifest's `display` to the session.
+- Make sure the app builds history at all. A vue-router guard that redirects with
+  `replace: true` (to carry a query parameter along, say) turns every push into a replace, and
+  the app then lives on a single entry: one back press and it is gone. Measure `history.length`
+  after a tap before blaming the browser.
+- The white moment before an installed app's first paint on Firefox for Android is the
+  browser's own clear colour, taken from its theme, not the page's background or the manifest's
+  `background_color`. Dark mode on the device is the only thing that changes it.
 
 ## How to verify without a phone
 
@@ -69,4 +83,6 @@ Some consequences that are easy to miss:
   returns one active registration with the right scope, `isSecureContext` is true, the
   manifest fetches as `application/manifest+json`.
 - Load the http copy: no worker, no error, app still works.
+- Back: open a page from the first one and check that `history.length` grew by one and
+  `history.state.back` names the page you came from.
 - Only the install itself needs the device.

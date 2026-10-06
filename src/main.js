@@ -20,6 +20,7 @@ import BackendPlayer from './BackendPlayer';
 import BrowserPlayer from './BrowserPlayer';
 import { bindMediaSession } from './mediaSession';
 import { bindImmersive } from './immersive';
+import { bindBack } from './back';
 import { registerServiceWorker } from './pwa';
 import { home, start as watchHome } from './home';
 import { net } from './net';
@@ -123,6 +124,8 @@ bindMediaSession(uiStore, stationStore, browserPlayerName);
 // Fullscreen and a screen that stays on, for the page that is only artwork.
 bindImmersive(uiStore);
 
+// What the phone's back button does in the installed app; see back.js.
+bindBack();
 
 for (const [stationName, stationLabel] of Object.entries(stations)) {
     // Same shape the metadata service returns, so the components receive the
@@ -228,7 +231,10 @@ router.beforeEach((to, from, next) => {
     if (to.query.backend) {
         backendURL = to.query.backend
     } else if (backendURL) {
-        next({ path: to.path, query: { ...to.query, backend: backendURL }, hash: to.hash, replace: true })
+        // A redirect replaces the navigation, not an entry: with replace: true
+        // here every push became a replace, and the installed app never had
+        // more than one history entry for the phone's back button to use.
+        next({ path: to.path, query: { ...to.query, backend: backendURL }, hash: to.hash })
         return
     }
     if (to.query.backend) ensureDiscovery(to.query.backend);
