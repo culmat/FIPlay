@@ -76,6 +76,14 @@ It passes if, after two weeks:
   UPnP: output codec **MP3**, flow sample rate **48 kHz** fixed, ICY metadata
   **disabled**. MP3 alone brought the One M back; the One S joined only once ICY was off.
   Audible sync to be confirmed by ear.
+- **2026-10-22, T1 recheck: not Music Assistant alone.** Ten minutes of plain FIP through
+  PyRaumfeld, devices sampled every 10 s over UPnP. With Music Assistant running (idle):
+  One M and One S out 14 and 15 of 60 samples; two dropouts followed Music Assistant's
+  Raumfeld reconnect cycle (it drops and re-opens the host connection about every ten
+  minutes), one did not. With Music Assistant stopped: One M out 0 of 60, One S out 33 of
+  60, reporting transport status "buffer underrun". So the One S is starved of the stream
+  the Connector relays (a WLAN throughput problem, independent of the source), and Music
+  Assistant's reconnects additionally knock the One M out.
 
 If it passes, the plan becomes: Music Assistant as the engine, FIPlay reduced to the
 away-from-home player and the speaker switch, and the gaps (upload from a phone, FIP
