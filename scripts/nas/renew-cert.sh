@@ -14,8 +14,10 @@
 # web server and the FIPlay vhost read it: /etc/stunnel/stunnel.pem (key +
 # certificate) and /etc/stunnel/uca.pem (chain).
 #
-# Installed by hand on 2026-09-23 next to the certificate files in
-# /share/fiplay-cert; see the README section on `bun run nas:https`.
+# Installed by `bun run nas:https` next to the certificate files it writes;
+# see the README section on that command. The directory must be on a disk
+# volume (/share/CACHEDEV1_DATA/...): /share itself is a tmpfs on QNAP and
+# loses anything that is not a registered shared folder at every reboot.
 set -e
 export PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -24,7 +26,7 @@ DOMAIN="$1"; EMAIL="$2"; DAYS="${3:-30}"
 
 QPKG=/mnt/ext/opt/QcloudSSLCertificate
 PY=/mnt/ext/opt/Python/bin/python2.7
-OUT=/share/fiplay-cert
+OUT="$(cd "$(dirname "$0")" && pwd)"
 SYS=/etc/stunnel
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*"; }
 

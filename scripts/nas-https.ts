@@ -34,7 +34,7 @@
  *                           NAS with a monthly cron entry, and run once now if the
  *                           installed certificate is missing, expired or for another
  *                           name. Needs a myQNAPcloud DDNS name as the host.
- *   FIPLAY_NAS_CERT_DIR     where that script and its files live (default /share/fiplay-cert)
+ *   FIPLAY_NAS_CERT_DIR     where that script and its files live (default /share/CACHEDEV1_DATA/fiplay-cert)
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -80,7 +80,9 @@ const backendPath = (backendCfg().path ?? '/pyraumfeld/').replace(/\/*$/, '/');
 const backendPort = backendCfg().port;
 const metadata = metadataProxyCfg();
 const certEmail = env(ENV.CERT_EMAIL);
-const certDir = envOr(ENV.NAS_CERT_DIR, '/share/fiplay-cert').replace(/\/+$/, '');
+// Not /share/<name>: /share is a tmpfs on QNAP, and only registered shared
+// folders get their symlink there recreated at boot.
+const certDir = envOr(ENV.NAS_CERT_DIR, '/share/CACHEDEV1_DATA/fiplay-cert').replace(/\/+$/, '');
 const RENEW_LOCAL = resolve(SCRIPT_DIR, 'nas', 'renew-cert.sh');
 const RENEW_REMOTE = `${certDir}/renew-cert.sh`;
 const CRONTAB = '/etc/config/crontab';
@@ -126,7 +128,8 @@ if (certEmail && !CHECK_ONLY) {
   if (cronHas) {
     skip('cron entry already present');
   } else {
-    const cron = await ssh(`printf '%s\n' ${shq(cronLine)} >> ${shq(CRONTAB)} && crontab ${shq(CRONTAB)} && echo ok`);
+    // Drop an entry for the script at an older path first, or both would run.
+    const cron = await ssh(`sed -i ${shq('\\#/renew-cert\.sh #d')} ${shq(CRONTAB)} && printf '%s\n' ${shq(cronLine)} >> ${shq(CRONTAB)} && crontab ${shq(CRONTAB)} && echo ok`);
     if (!cron.stdout.includes('ok')) abort(`could not add the cron entry: ${cron.stderr || cron.stdout}`);
     ok('cron entry added: monthly, renews with fewer than 30 days left');
   }
