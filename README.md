@@ -93,6 +93,7 @@ password once, interactively, and installs your SSH key instead.
 | `bun run nas:status` | Read-only check of deployment, backend container, and public services |
 | `bun run nas:https` | Serve the app over HTTPS on the NAS, with the speaker API on the same origin |
 | `bun run backend <cmd>` | `status`, `logs`, `pull`, `restart`, `update` for the PyRaumfeld container |
+| `bun run ma <cmd>` | The same for the Music Assistant container of the house-radio trial |
 | `bun run nas:setup-ssh` | Install your SSH key on the NAS so the other commands need no password |
 | `bun run nas:ssh` | Interactive shell on the NAS |
 
@@ -244,6 +245,20 @@ The PyRaumfeld container needs host networking, because it discovers the Raumfel
 UPnP. `bun run backend update` pulls the image and, if the digest changed, recreates the
 container with exactly that configuration and waits for the API to answer again. It restarts
 your speaker backend, so it is deliberately a separate command from `deploy`.
+
+### `bun run ma`
+
+Runs the house-radio trial: [Music Assistant](https://www.music-assistant.io/) on the NAS,
+next to PyRaumfeld, as described in [radio/REQUIREMENTS.md](radio/REQUIREMENTS.md).
+`bun run ma update` creates the container the first time and recreates it when the image
+changed: host networking (it discovers the Raumfeld host itself and the speakers fetch its
+stream), the data directory on the disk volume, the music library read-only at `/media`.
+`bun run ma status` shows the version, memory use and whether the first account has been
+created. The web UI is at `FIPLAY_MA_URL`; it asks for an account on first use.
+
+Directories for the NAS go on the disk volume (`/share/CACHEDEV1_DATA/...`), never
+directly under `/share`: that is a tmpfs on QNAP, and only registered shared folders get
+their symlink there recreated at boot.
 
 ## Notes from the field
 

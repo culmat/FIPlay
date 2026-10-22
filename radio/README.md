@@ -7,20 +7,22 @@ station; this file records what the proof of concept measured on 2026-09-28.
 ## How it runs (by hand, until `bun run radio` exists)
 
 ```sh
-ssh <nas> 'mkdir -p /share/fiplay-radio'
-rsync -rlt radio/ <nas>:/share/fiplay-radio/
+ssh <nas> 'mkdir -p /share/CACHEDEV1_DATA/fiplay-radio'
+rsync -rlt radio/ <nas>:/share/CACHEDEV1_DATA/fiplay-radio/
 ssh <nas> '
   D=/share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker
   "$D" volume create fiplay-radio-run
   "$D" run --rm -v fiplay-radio-run:/run/radio alpine sh -c "cd /run/radio && mkfifo airplay spotify"
   "$D" run -d --name liquidsoap --network host --restart unless-stopped \
-    -v /share/fiplay-radio:/radio:ro -v <music share>:/music:ro -v fiplay-radio-run:/run/radio \
+    -v /share/CACHEDEV1_DATA/fiplay-radio:/radio:ro -v <music share>:/music:ro -v fiplay-radio-run:/run/radio \
     -e FIP_METADATA_URL=http://127.0.0.1:<metadata port> \
     savonet/liquidsoap:v2.4.x-latest /radio/house.liq'
 ```
 
 Host networking, so the script reaches the metadata service on loopback and the
-receivers (later) can advertise themselves. Stop it with `docker stop liquidsoap`.
+receivers (later) can advertise themselves. The directory sits on the disk volume:
+`/share` itself is a tmpfs on QNAP, and a folder created directly under it is gone after
+the next reboot (only registered shared folders get their symlink back). Stop it with `docker stop liquidsoap`.
 
 Syntax check before every change, on the same image:
 
