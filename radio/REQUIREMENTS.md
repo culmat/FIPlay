@@ -62,6 +62,21 @@ It passes if, after two weeks:
 | T8 | household UX | The login per device and the UI feel acceptable next to FIPlay |
 | T9 | ops | Updates, restarts and a NAS reboot leave it working |
 
+### Trial log
+
+- **2026-10-22, setup.** The Raumfeld provider found no host until the second try (its
+  check gives the Connector three seconds). Music Assistant had meanwhile created plain
+  DLNA players for the three devices of the "Living" room; playing to those bypasses the
+  room. The two that did not merge into the Raumfeld player (Connector, One S) are
+  disabled.
+- **2026-10-22, T1 multiroom.** With the defaults (FLAC, "smart" sample rate, ICY
+  metadata with image) only the Connector played; the One M and One S kept joining and
+  dropping out. Baseline: FIP's 192 kbit AAC through PyRaumfeld played on all three within
+  seven seconds. What made Music Assistant play on all three, measured per device over
+  UPnP: output codec **MP3**, flow sample rate **48 kHz** fixed, ICY metadata
+  **disabled**. MP3 alone brought the One M back; the One S joined only once ICY was off.
+  Audible sync to be confirmed by ear.
+
 If it passes, the plan becomes: Music Assistant as the engine, FIPlay reduced to the
 away-from-home player and the speaker switch, and the gaps (upload from a phone, FIP
 titles, direction-driven autoplay with stickiness and weighting, AirPlay) built against
