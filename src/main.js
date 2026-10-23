@@ -85,6 +85,18 @@ function streamSources(stationName) {
     ];
 }
 
+// FIP's streams carry no metadata of their own, so without these the Raumfeld app
+// shows nothing for a station FIPlay started. The cover is the app icon on GitHub
+// Pages, which the Raumfeld app can load from anywhere.
+const SPEAKER_ARTWORK = 'https://culmat.github.io/FIPlay/icons/icon-512.png'
+
+function speakerMeta(url) {
+    const stationName = stationForStreamURL(url);
+    if (!stationName) return null;
+    const label = stations[stationName].replace(/^\P{L}+/u, '');
+    return { title: stationName === 'fip' ? label : `FIP ${label}`, art: SPEAKER_ARTWORK };
+}
+
 function stationForStreamURL(url) {
     if (!url || !url.includes('icecast.radiofrance.fr')) return null;
     const file = url.split('/').pop() || '';
@@ -517,7 +529,7 @@ uiStore.$subscribe(() => {
 
         if (now.playing && urlChanged && now.stationURL) {
             // A different station: point the player at it, which starts it too.
-            send(title, () => player.playURL(now.stationURL));
+            send(title, () => player.playURL(now.stationURL, speakerMeta(now.stationURL)));
         } else if (now.playing && !was.playing) {
             // Same stream as before, so this is a resume, not a new stream.
             send(title, () => player.play());

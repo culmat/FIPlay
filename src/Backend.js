@@ -81,14 +81,18 @@ export default class Backend {
         }
     }
 
-    async playURL(udn, url) {
+    /** `meta` ({ title, art }) is what the Raumfeld app shows for the stream. */
+    async playURL(udn, url, meta) {
         try {
             if (url == null && this.url == null) {
                 throw new Error('URL is null');
             }
+            if (url) this.meta = meta;
             url = url || this.url;
             this.url = url;
-            const response = await this.request(this.backendURL + udn + '/play/' + url);
+            const params = new URLSearchParams(Object.entries(this.meta || {}).filter(([, v]) => v)).toString();
+            const query = params ? (url.includes('?') ? '&' : '?') + params : '';
+            const response = await this.request(this.backendURL + udn + '/play/' + url + query);
             return (await response.json()).data;
         } catch (error) {
             console.error('Error playing:', error);

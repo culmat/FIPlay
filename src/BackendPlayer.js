@@ -7,8 +7,8 @@ export default class BackendPlayer {
         return this.backend.setVolume(this.udn, volume);
     }
 
-    async playURL(url) {
-        await this.backend.playURL(this.udn, url);
+    async playURL(url, meta) {
+        await this.backend.playURL(this.udn, url, meta);
         await this.play();
     }
 
