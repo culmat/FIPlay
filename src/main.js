@@ -97,6 +97,19 @@ function speakerMeta(url) {
     return { title: stationName === 'fip' ? label : `FIP ${label}`, art: SPEAKER_ARTWORK };
 }
 
+// Music Assistant names FIP World by its French name.
+const STATION_TITLE_ALIASES = { fipmonde: 'fip_world' }
+
+/**
+ * The station a speaker plays, from its stream or else from the title it was
+ * started with: Music Assistant plays FIP through a stream of its own, named
+ * after the station ("FIP Jazz"), as FIPlay names the ones it starts.
+ */
+function stationFor({ url, title }) {
+    const key = (title || '').normalize('NFD').replace(/[^A-Za-z]/g, '').toLowerCase();
+    return stationForStreamURL(url) || stationsByStreamSlug[key] || STATION_TITLE_ALIASES[key] || null;
+}
+
 function stationForStreamURL(url) {
     if (!url || !url.includes('icecast.radiofrance.fr')) return null;
     const file = url.split('/').pop() || '';
@@ -322,8 +335,9 @@ async function playStation(stationName) {
  * snapshot is resynced so this is not mistaken for a command and echoed back.
  */
 async function adoptPlayback(backend, udn, playerName) {
-    const url = await backend.currentURL(udn);
-    const stationName = stationForStreamURL(url);
+    const media = await backend.currentMedia(udn);
+    const url = media.url;
+    const stationName = stationFor(media);
     if (!stationName) {
         console.debug(`${playerName} is not on a FIP station (holds ${url || 'nothing'})`);
         return;
@@ -468,14 +482,15 @@ async function syncSpeakers() {
             if (!(player instanceof BackendPlayer)) continue;
             if ((quietUntil[title] || 0) > Date.now()) continue;
 
-            const [url, state, rawVolume] = await Promise.all([
-                player.backend.currentURL(player.udn),
+            const [media, state, rawVolume] = await Promise.all([
+                player.backend.currentMedia(player.udn),
                 player.backend.transportState(player.udn),
                 player.backend.getVolume(player.udn).catch(() => undefined),
             ]);
             if (state === null) continue; // unreachable right now; keep what we have
 
-            const stationName = stationForStreamURL(url);
+            const url = media.url;
+            const stationName = stationFor(media);
             const volume = Number(Array.isArray(rawVolume) ? rawVolume[0] : rawVolume);
             const before = uiStore.station?.name;
             const changed = uiStore.syncFromDevice(title, {

@@ -136,15 +136,19 @@ export default class Backend {
      * Only zones answer these; rooms have no such endpoint. Both are optional
      * for the app, so a failure is reported and swallowed rather than thrown.
      */
-    async currentURL(udn) {
+    /** The stream a speaker holds and the title it was started with, or nulls. */
+    async currentMedia(udn) {
         try {
             const response = await this.request(this.backendURL + udn + '/media_info');
-            if (!response.ok) return null;
-            const info = (await response.json()).data;
-            return (info && info[0] && info[0].CurrentURI) || null;
+            if (!response.ok) return { url: null, title: null };
+            const info = (await response.json()).data?.[0];
+            const meta = info?.CurrentURIMetaData || '';
+            const title = meta && new DOMParser().parseFromString(meta, 'text/xml')
+                .getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'title')[0]?.textContent;
+            return { url: info?.CurrentURI || null, title: title || null };
         } catch (error) {
             console.debug('Could not read what is playing:', error);
-            return null;
+            return { url: null, title: null };
         }
     }
 
