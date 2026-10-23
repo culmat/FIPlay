@@ -81,10 +81,17 @@ def poll_fip() =
         }
       }) = r
       title = j.now.firstLine.title
-      if title != "" and title != now().title then
+      start = float_of_int(j.now.startTime ?? 0)
+      # Around a change the feed flickers: old song, "Le direct" placeholder (no start
+      # time), old song, new song. As in FIPlay's StationWatcher, a placeholder does not
+      # replace a song still running, and a song that started no later than the one shown
+      # is old news. Without this every flip went out as a new ICY title.
+      song_shown = now().start > 0. and (now().stop == 0. or time() < now().stop + 30.)
+      placeholder = start == 0.
+      stale = not placeholder and start <= now().start
+      if title != "" and title != now().title and not (placeholder and song_shown) and not stale then
         artist = j.now.secondLine.title
         artwork = j.now.visuals.card.src
-        start = float_of_int(j.now.startTime ?? 0)
         stop = float_of_int(j.now.endTime ?? 0)
         now := {title = title, artist = artist, artwork = artwork, start = start, stop = stop}
         radio.insert_metadata([("house_source", "fip"), ("title", title), ("artist", artist), ("artwork", artwork)])

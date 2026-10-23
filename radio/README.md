@@ -42,7 +42,7 @@ Image `savonet/liquidsoap:v2.4.x-latest` = Liquidsoap 2.4.6, amd64, ffmpeg inclu
 | `/house.mp3` on the "Living" zone (`%mp3(bitrate=192)`) | **PLAYING within 4 s** |
 | `/house.aac` (`%ffmpeg(format="adts", aac 192k)`) | TRANSITIONING at 4 s, PLAYING at 12 s |
 | `/house.flac` (`%ogg(%flac)`) | still TRANSITIONING after 12 s; did not start |
-| ICY metadata | `icy-metaint: 8192` offered to clients that ask; whether the Raumfeld app shows the title is not verified yet (needs eyes on the app while the mount plays) |
+| ICY metadata | `icy-metaint: 8192` offered to clients that ask. The zone picks up the `StreamTitle` only when the mount was started with a DIDL-Lite item (`audioBroadcast` class): started bare it reports no title, started with one its title follows the songs (measured 2026-10-23, see [MULTIROOM.md](MULTIROOM.md)) |
 | CPU on the Celeron N3160 | 34 % of one core with three encoders, 20 % with MP3 alone (FIP AAC decode, normalize, two silence gates and one encoder) |
 | RAM | about 170 MB |
 | Latency | not measured by ear yet. Built in: 2 s `input.http` buffer plus the 64 KB `burst` a new listener receives at once, about 2.7 s at 192 kbit, plus whatever the speaker buffers for any stream. Knobs: `burst` and `buffer` on `output.harbor`, `buffer` on `input.http` |
@@ -70,6 +70,10 @@ commented out.
   TRANSITIONING for over fifteen seconds. The app's rescan-and-retry path exists for that.
 - The receivers' FIFOs must exist before the script starts; `cat` on a missing path exits
   and is not restarted (`restart_on_error=false`), which is the right behaviour.
+- The FIP title polling passed on every swing of Radio France's feed around a song change
+  (song, "Le direct" placeholder, previous song, new song): 17 ICY titles in seven minutes
+  for three songs. It now applies FIPlay's rules and ignores a placeholder while a song
+  is running, and any song that started no later than the one shown.
 
 ## Next
 
