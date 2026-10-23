@@ -19,9 +19,9 @@ and artwork reach the speakers.
 - **Song titles:**
   - Music Assistant: ICY "basic" brings them back to the Raumfeld app. The cover stays the
     first song's. ICY "full", the provider's default, never updated the title.
-  - FIPlay: it starts FIP without any metadata, so the Raumfeld app has nothing to show.
-    A DIDL item at start would show the station name and logo. Per-song FIP titles need
-    the house radio's stream.
+  - FIPlay: it started FIP without any metadata, so the Raumfeld app had nothing to
+    show. Since 2026-10-23 it sends the station's name and the FIPlay icon, through
+    PyRaumfeld's `play` route. Per-song FIP titles need the house radio's stream.
 - **Music Assistant is left on** FLAC, 48 kHz, flow mode, ICY "basic". The speakers are
   stopped, as they were before the measurements.
 
@@ -103,8 +103,8 @@ What the zone reports as the current track, per way of starting a stream:
 
 | Started by | Zone's title | Artwork | Follows the songs |
 | --- | --- | --- | --- |
-| FIPlay today (PyRaumfeld `play/<url>`, no DIDL) | empty | none | no |
-| The same URL with a DIDL item (title "FIP", logo URL) | "FIP" | the logo | no |
+| FIPlay until 2026-10-23 (PyRaumfeld `play/<url>`, no DIDL) | empty | none | no |
+| The same URL with a DIDL item, as FIPlay now does (`?title=FIP%20Jazz&art=…`) | "FIP Jazz" | the FIPlay icon | no |
 | Liquidsoap mount, no DIDL, ICY titles in the stream | empty | none | no |
 | Music Assistant, radio item | the item's name ("fip-hifi.aac") | Music Assistant logo | no |
 | Liquidsoap mount with a DIDL item ("House radio", logo) | ICY title, "Artist - Title" | the logo | title only |
@@ -113,10 +113,11 @@ What the zone reports as the current track, per way of starting a stream:
 | Music Assistant flow stream, ICY full | first track's title | first track's cover | no |
 | Music Assistant, flow mode off | each song's title, artist, album | each song's cover | yes |
 
-Why FIP shows nothing today:
+Why FIP showed nothing:
 - Radio France's Icecast streams carry no ICY metadata at all.
-- PyRaumfeld's `play/<url>` route calls `zone.play(uri)` with empty metadata, although the
-  library takes a `meta` argument.
+- PyRaumfeld's `play/<url>` route called `zone.play(uri)` with empty metadata, although
+  the library takes a `meta` argument. It now builds a broadcast item from `?title=` and
+  `?art=`.
 
 How the Raumfeld host handles metadata:
 - It takes title, artist, album and cover from the DIDL-Lite item the stream was started
@@ -151,12 +152,13 @@ What this means:
   - Music Assistant's own UI and FIPlay show the right cover regardless.
   - Flow mode off gives full metadata in the Raumfeld app, at the price of a gap between
     songs. It is a per-player setting, so it can be tried for a party and switched back.
-- **FIPlay, station name and logo:** possible with no stream change.
-  - PyRaumfeld's `play/<url>` route needs to accept a title and an artwork URL and pass a
-    DIDL item to `zone.play(uri, meta)`.
-  - FIPlay sends the station label and logo with it.
-  - The zone then reports them, as in the second row above. Nobody has looked at the
-    Raumfeld app during this yet.
+- **FIPlay, station name and cover:** done, with no stream change.
+  - FIPlay sends the station's name and the app icon when it starts a station.
+  - PyRaumfeld passes them to the zone as a broadcast item. Verified on the zone from
+    the deployed app.
+  - What the Raumfeld app makes of them has not been looked at yet.
+  - Resuming a paused station keeps whatever the zone already held, so a station started
+    before this change shows its name only after the next station change.
 - **FIPlay, FIP's song titles in the Raumfeld app:** only through a stream that carries
   ICY titles and is started as a broadcast item. That means the house radio: Liquidsoap
   puts the FIP titles into its mount, and the zone shows them. The cover stays whatever
