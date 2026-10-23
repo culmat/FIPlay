@@ -101,13 +101,17 @@ function speakerMeta(url) {
 const STATION_TITLE_ALIASES = { fipmonde: 'fip_world' }
 
 /**
- * The station a speaker plays, from its stream or else from the title it was
- * started with: Music Assistant plays FIP through a stream of its own, named
- * after the station ("FIP Jazz"), as FIPlay names the ones it starts.
+ * The station a speaker plays, from its stream or else from how the stream is
+ * described: Music Assistant plays FIP through a stream of its own, named after
+ * the station ("FIP Jazz") as FIPlay names the ones it starts, and once a song
+ * plays it names the song and keeps the station as the album.
  */
-function stationFor({ url, title }) {
-    const key = (title || '').normalize('NFD').replace(/[^A-Za-z]/g, '').toLowerCase();
-    return stationForStreamURL(url) || stationsByStreamSlug[key] || STATION_TITLE_ALIASES[key] || null;
+function stationFor({ url, title, album }) {
+    const byName = name => {
+        const key = (name || '').normalize('NFD').replace(/[^A-Za-z]/g, '').toLowerCase();
+        return stationsByStreamSlug[key] || STATION_TITLE_ALIASES[key] || null;
+    };
+    return stationForStreamURL(url) || byName(title) || byName(album);
 }
 
 function stationForStreamURL(url) {

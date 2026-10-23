@@ -136,19 +136,24 @@ export default class Backend {
      * Only zones answer these; rooms have no such endpoint. Both are optional
      * for the app, so a failure is reported and swallowed rather than thrown.
      */
-    /** The stream a speaker holds and the title it was started with, or nulls. */
+    /** The stream a speaker holds and the title and album it is described with, or nulls. */
     async currentMedia(udn) {
+        const none = { url: null, title: null, album: null };
         try {
             const response = await this.request(this.backendURL + udn + '/media_info');
-            if (!response.ok) return { url: null, title: null };
+            if (!response.ok) return none;
             const info = (await response.json()).data?.[0];
-            const meta = info?.CurrentURIMetaData || '';
-            const title = meta && new DOMParser().parseFromString(meta, 'text/xml')
-                .getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'title')[0]?.textContent;
-            return { url: info?.CurrentURI || null, title: title || null };
+            const meta = info?.CurrentURIMetaData;
+            const doc = meta ? new DOMParser().parseFromString(meta, 'text/xml') : null;
+            const text = (ns, tag) => doc?.getElementsByTagNameNS(ns, tag)[0]?.textContent || null;
+            return {
+                url: info?.CurrentURI || null,
+                title: text('http://purl.org/dc/elements/1.1/', 'title'),
+                album: text('urn:schemas-upnp-org:metadata-1-0/upnp/', 'album'),
+            };
         } catch (error) {
             console.debug('Could not read what is playing:', error);
-            return { url: null, title: null };
+            return none;
         }
     }
 
