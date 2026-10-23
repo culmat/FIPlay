@@ -84,6 +84,17 @@ It passes if, after two weeks:
   60, reporting transport status "buffer underrun". So the One S is starved of the stream
   the Connector relays (a WLAN throughput problem, independent of the source), and Music
   Assistant's reconnects additionally knock the One M out.
+- **2026-10-23, T1 passes on 5 GHz.** All three devices moved to the repeater's 5 GHz
+  radio. Since then every stream tried played on all three for 6 to 10 minutes without a
+  gap: plain FIP, the Liquidsoap mount, and Music Assistant's MP3, AAC, FLAC and WAV. The
+  host disconnects stopped too, so they were a symptom of the slow link. The "Living"
+  player now runs FLAC, 48 kHz, flow mode and ICY "basic". With "basic" the Raumfeld app
+  gets each song's title back; "full", the provider's default, never updated it. T5: 240
+  to 390 MB while playing, inside the budget. CPU was 10 to 40 % of a core, with one sample
+  at 170 % during the "full" run while the library scan was still going. T6: FIP's titles
+  reach the Raumfeld app only through a stream with ICY titles that was started as a
+  broadcast item, which is the house radio's mount. Measurements, numbers and draft
+  feedback for Music Assistant are in [MULTIROOM.md](MULTIROOM.md).
 
 If it passes, the plan becomes: Music Assistant as the engine, FIPlay reduced to the
 away-from-home player and the speaker switch, and the gaps (upload from a phone, FIP
