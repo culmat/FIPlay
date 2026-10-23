@@ -176,7 +176,13 @@ the NAS yet.
 The Raumfeld provider (`music_assistant/providers/raumfeld/` in music-assistant/server,
 code owner @Simanias, stage "experimental") is four weeks old. It had about fifteen merged
 pull requests in that time, and nothing in it changed between 2.11.0b6 and `dev` on
-2026-10-22. Nothing below has been posted.
+2026-10-22.
+
+Status on 2026-10-23:
+- Item 1 went upstream as server#7171.
+- Item 2 is fixed by server#7166, which the code owner verified on a single One S.
+- Item 3 went upstream as support#6851. The code owner confirmed it and is working on a
+  fix.
 
 1. **Host check gives up after 3 s.**
    - What happens:
