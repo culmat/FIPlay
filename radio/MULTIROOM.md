@@ -171,6 +171,54 @@ previous song around every change, and `house.liq` passed each swing on. Fixed i
 a song that started no later than the one shown is old news. The fix is not deployed to
 the NAS yet.
 
+## Station switching
+
+Switching FIP stations felt slower through Music Assistant than through FIPlay. Measured
+on 2026-10-25 with `bun scripts/switch-timing.ts direct|ma`:
+- The script alternates FIP Jazz and FIP Rock, six switches, with the room already playing.
+- It polls the zone and the three devices every 250 ms, and counts until all four are
+  `PLAYING` again on the new stream.
+- The first switch of each run is left out of the median.
+
+| Started by | Zone takes the new stream | All playing (median) |
+| --- | --- | --- |
+| FIPlay (PyRaumfeld `play/<url>`, then `play`) | 0.3 s | **3.1 s** (2.8–3.6) |
+| Music Assistant, as it was | 2.1 s | **4.5 s** (4.1–4.8) |
+| Music Assistant, radio volume normalization fixed instead of dynamic | 2.0 s | 5.0 s (no gain) |
+| Music Assistant, UPnP actions cached in the Raumfeld provider | 1.3 s | **3.2 s** (3.1–4.3) |
+
+- **The room itself** needs about 2.5 s to re-join any new stream, whoever sends it.
+  That part is the same for both ways.
+- **Where Music Assistant lost the time**, from its debug log, per switch:
+  - About 0.2 s from the request until the old stream is stopped.
+  - Stream details in 20–30 ms.
+  - About 0.9 s to open FIP's Icecast stream and decode the first chunk.
+  - About 1.0 s from "Starting playback on Living" until the host requests the stream.
+- **The 1.0 s** was three UPnP actions in a row: `Stop`, `SetAVTransportURI`, `Play`.
+  Before each one, hassfeld's `get_dlna_action` built the device again, reading the zone
+  renderer's device description and every service description.
+  - The provider now keeps the action per description URL. Each action is one request.
+  - It drops the kept action when the renderer cannot be reached, for example after it
+    came back on another port.
+  - Branch `raumfeld-upnp-cache` in `culmat/server`, deployed on the NAS.
+- **Not the cause:**
+  - Music Assistant's paced FLAC output. The room re-joins Music Assistant's stream a
+    little faster than FIP's own.
+  - Volume normalization.
+  - Flow mode and ICY. Neither applies to radio, which Music Assistant always streams one
+    item at a time.
+- **Seen on the side:**
+  - Music Assistant decoded FIP's 48 kHz AAC to 44.1 kHz, then resampled to 48 kHz for the
+    FLAC. The FIP provider gave no sample rate, and the model's default is 44.1 kHz.
+    - All 13 hifi mounts are 48 kHz (ffprobe, 2026-10-25). The provider now says so:
+      branch `fip-sample-rate` in `culmat/server` for upstream, and `fip-provider` on the
+      NAS.
+    - Music Assistant now stays at 48 kHz from decode to FLAC. This saves quality and CPU,
+      not time.
+  - Twice in about 30 switches, the room did not play again within 45 s. Once it was
+    before both fixes and once after. The host had fetched the new stream, and Music
+    Assistant logged nothing unusual. Not understood yet.
+
 ## Feedback for Music Assistant
 
 The Raumfeld provider (`music_assistant/providers/raumfeld/` in music-assistant/server,
