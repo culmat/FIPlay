@@ -20,13 +20,20 @@ thing that knows about both.
 | [fip-metadata-server](https://github.com/culmat/fip-metadata-server) | Now-playing track, artist and cover art per station. Go, deployed on fly.io | `src/metadata.js`: the build's own service (`VITE_METADATA_URL`), the public one as fallback |
 | [PyRaumfeld](https://github.com/culmat/PyRaumfeld) | HTTP API over the Raumfeld system: list zones and rooms, set volume, play a stream URL | the `?backend=` query parameter, read in `src/main.js` |
 
-```
-                 now playing          https://fip-metadata.fly.dev
-  browser  ─────────────────────────▶ (Go, fly.io) ──▶ Radio France livemeta API
-     │
-     │  ?backend=http://<host>:<port>/
-     ▼
-  PyRaumfeld (Python, Docker) ──▶ Raumfeld host ──▶ speakers
+```mermaid
+graph LR
+  browser["browser"]
+  metadata["fip-metadata.fly.dev<br/>(Go, fly.io)<br/>https://fip-metadata.fly.dev"]
+  rf["Radio France<br/>livemeta API"]
+  pyraumfeld["PyRaumfeld<br/>(Python, Docker)<br/>?backend=http://host:port/"]
+  raumfeld["Raumfeld host"]
+  speakers["speakers"]
+  
+  browser -->|now playing| metadata
+  metadata --> rf
+  browser --> pyraumfeld
+  pyraumfeld --> raumfeld
+  raumfeld --> speakers
 ```
 
 Without a `?backend=` parameter FIPlay still works: it falls back to an `<audio>` element and
