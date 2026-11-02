@@ -17,7 +17,7 @@ thing that knows about both.
 
 | Service | What it provides | How FIPlay finds it |
 | --- | --- | --- |
-| [fip-metadata-server](https://github.com/culmat/fip-metadata-server) | Now-playing track, artist and cover art per station. Go, deployed on fly.io | `src/metadata.js`: the build's own service (`VITE_METADATA_URL`), the public one as fallback |
+| [fip-metadata-server](https://github.com/harperreed/fip-metadata-server) | Now-playing track, artist and cover art per station. Go, deployed on fly.io | `src/metadata.js`: the build's own service (`VITE_METADATA_URL`), the public one as fallback |
 | [PyRaumfeld](https://github.com/culmat/PyRaumfeld) | HTTP API over the Raumfeld system: list zones and rooms, set volume, play a stream URL | the `?backend=` query parameter, read in `src/main.js` |
 
 ```mermaid
@@ -276,10 +276,6 @@ done together with a coding agent. Most of it applies beyond this project.
 
 ## Known issues
 
-- **`fip_sacre_francais` never loads metadata.** The station is in FIPlay's list but not in
-  the metadata server's, which answers 500. That error path sends no CORS header, so the
-  browser reports it as a CORS failure rather than a 404. Fix it by adding the station in
-  [fip-metadata-server](https://github.com/culmat/fip-metadata-server) or removing it here.
 - **The speakers can take a minute to appear after a cold start.** On load the app calls the
   backend's `/update`, which rescans the Raumfeld network and can take 45 seconds, followed by
   a first `/zones` that can take another 15. Later calls are fast. Until that chain finishes
