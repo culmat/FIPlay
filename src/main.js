@@ -24,6 +24,7 @@ import { bindBack } from './back';
 import { registerServiceWorker } from './pwa';
 import { home, start as watchHome } from './home';
 import { net } from './net';
+import { describeStation, isNewer } from './speakerSong';
 const browser = Bowser.getParser(window.navigator.userAgent);
 
 const app = createApp(App)
@@ -85,16 +86,22 @@ function streamSources(stationName) {
     ];
 }
 
-// FIP's streams carry no metadata of their own, so without these the Raumfeld app
-// shows nothing for a station FIPlay started. The cover is the app icon on GitHub
-// Pages, which the Raumfeld app can load from anywhere.
+// FIP's streams carry no metadata of their own, so without a description the Raumfeld
+// app shows nothing for a station FIPlay started. Before a song is known the station is
+// shown with the app icon on GitHub Pages, which the Raumfeld app can load from anywhere.
 const SPEAKER_ARTWORK = 'https://culmat.github.io/FIPlay/icons/icon-512.png'
 
+/** "FIP", "FIP Jazz", ...: the station's name without its emoji. */
+function stationTitle(stationName) {
+    const label = stations[stationName].replace(/^\P{L}+/u, '');
+    return stationName === 'fip' ? label : `FIP ${label}`;
+}
+
+/** What a speaker playing this stream should show: the song FIPlay shows for its station. */
 function speakerMeta(url) {
     const stationName = stationForStreamURL(url);
     if (!stationName) return null;
-    const label = stations[stationName].replace(/^\P{L}+/u, '');
-    return { title: stationName === 'fip' ? label : `FIP ${label}`, art: SPEAKER_ARTWORK };
+    return describeStation(stationName, stationTitle(stationName), stationStore.stations[stationName]?.now, SPEAKER_ARTWORK);
 }
 
 // Music Assistant names FIP World by its French name.
@@ -493,6 +500,10 @@ async function syncSpeakers() {
             ]);
             if (state === null) continue; // unreachable right now; keep what we have
 
+            // Resumed, started by another copy or from the Raumfeld app: the zone may
+            // still describe an earlier song.
+            if (state === 'PLAYING') keepDescribed(title, player, media);
+
             const url = media.url;
             const stationName = stationFor(media);
             const volume = Number(Array.isArray(rawVolume) ? rawVolume[0] : rawVolume);
@@ -529,6 +540,71 @@ function startSpeakerSync() {
     setInterval(syncSpeakers, SYNC_MS);
     // Coming back to the tab is exactly when the picture is most likely stale.
     document.addEventListener('visibilitychange', () => { if (!document.hidden) syncSpeakers(); });
+}
+
+/**
+ * Keep a zone that plays a FIP stream showing the song FIPlay shows for that station.
+ *
+ * A stream keeps the description it was started with, so without this the Raumfeld
+ * app would name the first song, or only the station, for as long as the stream runs.
+ * The zone is told only when FIPlay shows a later song than the zone does (see
+ * speakerSong.js), which also keeps several open copies from repeating each other.
+ * Streams FIPlay cannot trace to a FIP station, such as Music Assistant's own, which
+ * Music Assistant describes itself, a Line-In or another app's, are left alone. Only
+ * zones are told: a room reports nothing to compare against.
+ */
+const describing = {};
+const DESCRIBE_SPREAD_MS = 3000;
+
+async function keepDescribed(title, player, media) {
+    if (describing[title]) return;
+    const meta = speakerMeta(media.url);
+    if (!meta || !isNewer(meta, media.id)) return;
+    describing[title] = true;
+    try {
+        await player.backend.bend(player.udn, media.url, meta);
+        console.debug(`${title} now shows ${meta.title} (${meta.id})`);
+    } catch (error) {
+        // A nicety: the next song change or sync tries again.
+        console.debug(`${title}: could not change what it shows`, error);
+    } finally {
+        describing[title] = false;
+    }
+}
+
+/**
+ * Tell the speakers about a new song as soon as FIPlay shows it.
+ *
+ * The sync above does this too, but only while the page is on screen, and every few
+ * seconds. This follows the station watchers, which keep running in a tab in the
+ * background, so the Raumfeld app is not left waiting for someone to look at FIPlay.
+ */
+watch(
+    () => uiStore.players
+        .filter(p => p.kind === 'speaker' && p.playing && p.stationName)
+        .map(p => `${p.title}\n${stationStore.stations[p.stationName]?.now?.startTime}`)
+        .join('\n'),
+    () => {
+        for (const state of uiStore.players) {
+            const player = players[state.title];
+            if (!(player instanceof BackendPlayer) || !state.playing) continue;
+            // Every open copy moves on to the next song at the same moment. Spread
+            // out, all but the first find the zone already told and leave it.
+            setTimeout(() => describeWhenQuiet(state.title, player), Math.random() * DESCRIBE_SPREAD_MS);
+        }
+    },
+);
+
+/** Read what the zone shows and correct it, once the last command to it has landed. */
+function describeWhenQuiet(title, player) {
+    // Right after a command the zone may still hold the previous stream, and a bend
+    // names the stream it applies to.
+    const wait = (quietUntil[title] || 0) - Date.now();
+    if (wait > 0) {
+        setTimeout(() => describeWhenQuiet(title, player), wait);
+        return;
+    }
+    player.backend.currentMedia(player.udn).then(media => keepDescribed(title, player, media));
 }
 
 uiStore.$subscribe(() => {

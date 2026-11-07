@@ -7,6 +7,12 @@ import { net, timeoutSignal } from './net';
 const TIMEOUT_MS = 20000;
 const RESCAN_TIMEOUT_MS = 60000;
 
+/** The query that hands PyRaumfeld a stream's description, after the stream URL in the path. */
+function describedBy(url, meta) {
+    const params = new URLSearchParams(Object.entries(meta || {}).filter(([, v]) => v)).toString();
+    return params ? (url.includes('?') ? '&' : '?') + params : '';
+}
+
 export default class Backend {
     constructor(backendURL, path) {
         this.backendURLroot = backendURL.endsWith('/') ? backendURL : backendURL + '/';
@@ -81,7 +87,7 @@ export default class Backend {
         }
     }
 
-    /** `meta` ({ title, art }) is what the Raumfeld app shows for the stream. */
+    /** `meta` ({ title, artist, album, art, id }) is what the Raumfeld app shows for the stream. */
     async playURL(udn, url, meta) {
         try {
             if (url == null && this.url == null) {
@@ -90,14 +96,29 @@ export default class Backend {
             if (url) this.meta = meta;
             url = url || this.url;
             this.url = url;
-            const params = new URLSearchParams(Object.entries(this.meta || {}).filter(([, v]) => v)).toString();
-            const query = params ? (url.includes('?') ? '&' : '?') + params : '';
-            const response = await this.request(this.backendURL + udn + '/play/' + url + query);
+            const response = await this.request(this.backendURL + udn + '/play/' + url + describedBy(url, this.meta));
             return (await response.json()).data;
         } catch (error) {
             console.error('Error playing:', error);
             throw error;
         }
+    }
+
+    /**
+     * Change what a zone shows for the stream it plays, without interrupting it.
+     *
+     * Zones only: PyRaumfeld offers it for zones, as Music Assistant uses it. A
+     * PyRaumfeld without the route answers 404, and is then not asked again.
+     */
+    async bend(udn, url, meta) {
+        if (this.cannotBend) return;
+        const response = await this.request(this.backendURL + udn + '/bend/' + url + describedBy(url, meta));
+        if (response.status === 404) {
+            this.cannotBend = true;
+            console.debug('This PyRaumfeld cannot change what a zone shows; it needs the bend route');
+            return;
+        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
     }
 
     async play(udn) {
@@ -136,9 +157,12 @@ export default class Backend {
      * Only zones answer these; rooms have no such endpoint. Both are optional
      * for the app, so a failure is reported and swallowed rather than thrown.
      */
-    /** The stream a speaker holds and the title and album it is described with, or nulls. */
+    /**
+     * The stream a speaker holds, and the item id, title and album it is described
+     * with, or nulls.
+     */
     async currentMedia(udn) {
-        const none = { url: null, title: null, album: null };
+        const none = { url: null, id: null, title: null, album: null };
         try {
             const response = await this.request(this.backendURL + udn + '/media_info');
             if (!response.ok) return none;
@@ -146,8 +170,10 @@ export default class Backend {
             const meta = info?.CurrentURIMetaData;
             const doc = meta ? new DOMParser().parseFromString(meta, 'text/xml') : null;
             const text = (ns, tag) => doc?.getElementsByTagNameNS(ns, tag)[0]?.textContent || null;
+            const item = doc?.getElementsByTagNameNS('urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/', 'item')[0];
             return {
                 url: info?.CurrentURI || null,
+                id: item?.getAttribute('id') || null,
                 title: text('http://purl.org/dc/elements/1.1/', 'title'),
                 album: text('urn:schemas-upnp-org:metadata-1-0/upnp/', 'album'),
             };
