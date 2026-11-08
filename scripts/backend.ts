@@ -11,11 +11,21 @@
  *
  * The container is recreated exactly as it runs today: host networking (UPnP
  * discovery needs it), restart unless-stopped, PORT from FIPLAY_BACKEND_PORT.
+ * FIP_METADATA_URL turns on PyRaumfeld's FIP follower, which keeps the zones that
+ * play FIP showing the current song. It points at the NAS's own metadata service
+ * when FIPLAY_METADATA_PORT says where it is published, else at the public one.
  *
  * Requires in .env: FIPLAY_NAS_HOST, FIPLAY_NAS_USER; FIPLAY_BACKEND_URL for API checks.
- * Optional: FIPLAY_BACKEND_PORT, FIPLAY_BACKEND_IMAGE, FIPLAY_BACKEND_CONTAINER, FIPLAY_NAS_DOCKER
+ * Optional: FIPLAY_BACKEND_PORT, FIPLAY_BACKEND_IMAGE, FIPLAY_BACKEND_CONTAINER, FIPLAY_NAS_DOCKER,
+ * FIPLAY_METADATA_PORT
  */
-import { abort, backendCfg, backendZones, gap, info, ok, remoteDocker, requireSsh, shq, skip, ssh, summary, waitFor } from './lib';
+import { DEFAULT_METADATA_URL, abort, backendCfg, backendZones, gap, info, metadataProxyCfg, ok, remoteDocker, requireSsh, shq, skip, ssh, summary, waitFor } from './lib';
+
+/** The metadata service PyRaumfeld asks, as the container on the NAS sees it. */
+function followerMetadataURL(): string {
+  const local = metadataProxyCfg();
+  return local ? `http://localhost:${local.port}` : DEFAULT_METADATA_URL;
+}
 
 export type ContainerState = { status: string; image: string; running: boolean } | null;
 
@@ -142,7 +152,7 @@ async function cmdUpdate(force: boolean): Promise<void> {
     remoteDocker(
       [
         `"$D" rm -f ${shq(container)} >/dev/null 2>&1 || true`,
-        `"$D" run -d --name ${shq(container)} --network host --restart unless-stopped -e PORT=${shq(port)} ${shq(image)}`,
+        `"$D" run -d --name ${shq(container)} --network host --restart unless-stopped -e PORT=${shq(port)} -e FIP_METADATA_URL=${shq(followerMetadataURL())} ${shq(image)}`,
       ].join(' && '),
     ),
   );
