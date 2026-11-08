@@ -152,7 +152,7 @@ async function cmdUpdate(force: boolean): Promise<void> {
     remoteDocker(
       [
         `"$D" rm -f ${shq(container)} >/dev/null 2>&1 || true`,
-        `"$D" run -d --name ${shq(container)} --network host --restart unless-stopped -e PORT=${shq(port)} -e FIP_METADATA_URL=${shq(followerMetadataURL())} ${shq(image)}`,
+        `"$D" run -d --name ${shq(container)} --network host --restart unless-stopped -e PORT=${shq(port)} -e FIP_METADATA_URL=${shq(followerMetadataURL())} -e PYTHONUNBUFFERED=1 ${shq(image)}`,
       ].join(' && '),
     ),
   );
