@@ -21,8 +21,8 @@ and artwork reach the speakers.
     first song's. ICY "full", the provider's default, never updated the title.
   - FIPlay: it started FIP without any metadata, so the Raumfeld app had nothing to
     show. Since 2026-10-23 it sends the station's name and the FIPlay icon, through
-    PyRaumfeld's `play` route. Since 2026-11-07 it names each song, with artist and
-    cover, by changing the zone's description at every song change (see below).
+    PyRaumfeld's `play` route. Since 2026-11-08 PyRaumfeld names each song, with artist
+    and cover, by changing the zone's description at every song change (see below).
 - **Music Assistant is left on** FLAC, 48 kHz, flow mode, ICY "basic". The speakers are
   stopped, as they were before the measurements.
 
@@ -106,7 +106,7 @@ What the zone reports as the current track, per way of starting a stream:
 | --- | --- | --- | --- |
 | FIPlay until 2026-10-23 (PyRaumfeld `play/<url>`, no DIDL) | empty | none | no |
 | The same URL with a DIDL item, as FIPlay did from 2026-10-23 (`?title=FIP%20Jazz&art=…`) | "FIP Jazz" | the FIPlay icon | no |
-| FIPlay since 2026-11-07: the song's DIDL item at the start, then PyRaumfeld's `bend` at each song change | each song's title and artist, the station as album | each song's cover | yes |
+| Any FIP Icecast stream on a zone since 2026-11-08: PyRaumfeld's follower bends each song onto it (FIPlay did this from the browser on 2026-11-07) | each song's title and artist, the station as album | each song's cover | yes |
 | Liquidsoap mount, no DIDL, ICY titles in the stream | empty | none | no |
 | Music Assistant, radio item | the item's name ("fip-hifi.aac") | Music Assistant logo | no |
 | Liquidsoap mount with a DIDL item ("House radio", logo) | ICY title, "Artist - Title" | the logo | title only |
@@ -167,15 +167,18 @@ What this means:
   - What the Raumfeld app makes of them has not been looked at yet.
   - Resuming a paused station keeps whatever the zone already held, so a station started
     before this change shows its name only after the next station change.
-- **FIPlay, FIP's songs in the Raumfeld app:** done since 2026-11-07, with no stream
-  change.
-  - FIPlay starts a station with the song it shows, and changes the zone's description
-    with PyRaumfeld's `bend` route whenever that song changes. That is the same thing
-    the trial's Music Assistant does.
-  - The item id is `fiplay:<station>:<song start>`. A copy of FIPlay only moves a zone
-    on to a later song, so two open copies cannot swing it back and forth.
-  - It needs a copy of FIPlay running, and it reaches zones only.
-  - Until then, the only way was a stream that carries ICY titles and is started as a
+- **FIP's songs in the Raumfeld app:** done since 2026-11-08, with no stream change.
+  - PyRaumfeld on the NAS asks the metadata service about every zone that plays a FIP
+    Icecast stream, and changes the zone's description at each song change. That is
+    the same thing the trial's Music Assistant does. It works with no FIPlay open,
+    whoever started the station.
+  - It follows FIPlay's rules for the late, flickering feed, so the Raumfeld app and
+    FIPlay's screen change song together.
+  - The item id is `fiplay:<station>:<song start>`, and a zone is only moved on to a
+    later song. It reaches zones only.
+  - On 2026-11-07 FIPlay did this from the browser, which needed a copy of FIPlay
+    open; a phone that suspends FIPlay stopped it.
+  - Before that, the only way was a stream that carries ICY titles and is started as a
     broadcast item: the house radio's Liquidsoap mount. Its cover stays whatever the
     DIDL item named.
 

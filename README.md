@@ -18,7 +18,7 @@ thing that knows about both.
 | Service | What it provides | How FIPlay finds it |
 | --- | --- | --- |
 | [fip-metadata-server](https://github.com/harperreed/fip-metadata-server) | Now-playing track, artist and cover art per station. Go, deployed on fly.io | `src/metadata.js`: the build's own service (`VITE_METADATA_URL`), the public one as fallback |
-| [PyRaumfeld](https://github.com/culmat/PyRaumfeld) | HTTP API over the Raumfeld system: list zones and rooms, set volume, play a stream URL and say what it plays | the `?backend=` query parameter, read in `src/main.js` |
+| [PyRaumfeld](https://github.com/culmat/PyRaumfeld) | HTTP API over the Raumfeld system: list zones and rooms, set volume, play a stream URL; keeps zones that play FIP showing the song | the `?backend=` query parameter, read in `src/main.js` |
 
 ```mermaid
 graph LR
@@ -32,6 +32,7 @@ graph LR
   browser -->|now playing| metadata
   metadata --> rf
   browser --> pyraumfeld
+  pyraumfeld -->|song per zone| metadata
   pyraumfeld --> raumfeld
   raumfeld --> speakers
 ```
@@ -63,13 +64,16 @@ match what you hear.
 
 The Raumfeld app shows the same song as FIPlay: title, artist, cover, and the station as
 album. FIP's streams carry no song details, and a zone keeps the description a stream was
-started with. So FIPlay describes the song when it starts a station on a zone. When the song
-changes, it replaces the description through PyRaumfeld's `bend` route, which leaves the
-stream playing. Music Assistant does the same for the streams it serves.
-- **Several copies:** the description's item id carries the song's start time. Each copy
-  only moves a zone on to a later song, so open copies don't undo each other.
-- **Needs a copy running:** some copy of FIPlay has to be open for this. A copy in a
-  background tab still follows the songs, but a phone that suspended FIPlay does not.
+started with, so FIPlay itself only starts a station with its name and the app icon.
+PyRaumfeld, running on the NAS, keeps the zones current. It asks the metadata service about
+every zone that plays a FIP stream, and replaces the zone's description at each song change
+without interrupting the stream. Music Assistant does the same for the streams it serves.
+- **No copy needed:** it works with no FIPlay open, and whoever started the station: FIPlay,
+  the Raumfeld app or a station button.
+- **Same timing:** it follows the songs by FIPlay's rules above, so the app and FIPlay's
+  screen change song together.
+- **Turned on by the backend command:** `bun run backend update` starts the container with
+  `FIP_METADATA_URL`, the NAS's own metadata service when `FIPLAY_METADATA_PORT` is set.
 - **Zones only:** a room outside any zone keeps the description its stream started with.
 - **Playing time:** the zone's elapsed time counts from the stream's start, and a new
   description does not reset it. FIPlay's own screen shows how far into the song it is.
